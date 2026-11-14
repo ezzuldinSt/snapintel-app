@@ -9,3 +9,7 @@ venv/
 # Build artifacts
 build/
 *.egg-info/
+
+# Desktop app (Rust)
+desktop/target/
+desktop/src-tauri/gen/

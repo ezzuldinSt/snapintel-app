@@ -7,6 +7,10 @@
 SnapIntel is a python tool providing you information about Snapchat users. You can list stories, curated highlights, spotlights, lenses and even download all of them!
 The heatmap functionality allows you to generate a heatmap related to upload dates for specific categories.
 
+### Desktop app
+
+There is also a desktop app for Windows and Linux, written in Rust, in [`desktop/`](desktop/README.md): the same lookups in a window, with a media viewer, Spotlight details, insights, verifiable downloads and JSON/CSV export. The Python command-line tool described below still works on its own.
+
 ### Updates
 
 `05/08/2025`:

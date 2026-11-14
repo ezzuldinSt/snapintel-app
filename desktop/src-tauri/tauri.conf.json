@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "SnapIntel",
+  "version": "0.2.0",
+  "identifier": "app.snapintel.desktop",
+  "build": {
+    "frontendDist": "../ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "SnapIntel",
+        "width": 1320,
+        "height": 860,
+        "minWidth": 960,
+        "minHeight": 640,
+        "center": true,
+        "dragDropEnabled": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "deb", "rpm", "appimage"],
+    "category": "Utility",
+    "shortDescription": "Look up public Snapchat profiles and save their media",
+    "longDescription": "SnapIntel shows what a public Snapchat profile publishes on snapchat.com (profile details, story, highlights, Spotlight and lenses) and saves media with a manifest that can be verified later.",
+    "license": "AGPL-3.0-only",
+    "homepage": "https://github.com/Kr0wZ/SnapIntel",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    },
+    "linux": {
+      "deb": {
+        "depends": ["gstreamer1.0-plugins-good", "gstreamer1.0-libav"]
+      }
+    }
+  }
+}

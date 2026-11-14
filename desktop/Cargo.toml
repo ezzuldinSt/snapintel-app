@@ -1,0 +1,17 @@
+[workspace]
+members = ["core", "src-tauri"]
+resolver = "2"
+
+[workspace.package]
+version = "0.2.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+repository = "https://github.com/Kr0wZ/SnapIntel"
+rust-version = "1.77"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

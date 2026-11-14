@@ -17,7 +17,12 @@ from snapintel.ssd import Snap_Story_Downloader  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ACCOUNTS = {"public_profile.html": "spectacles", "nonpublic_profile.html": "bitmoji"}
-KEEP = ["pageMetadata", "userProfile", "story", "curatedHighlights", "spotlightHighlights", "spotlightStoryMetadata", "lenses"]
+KEEP = [
+	"pageMetadata", "pageLinks", "locale", "userProfile", "story",
+	"curatedHighlights", "curatedHighlightsCursor",
+	"spotlightHighlights", "spotlightHighlightsCursor", "spotlightStoryMetadata",
+	"lenses", "lensCursor",
+]
 ITEMS = 3
 
 
