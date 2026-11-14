@@ -160,8 +160,6 @@ class JsonDisplay:
 			self.doc["bitmojis"] = {"count": len(data or []), "md5": sorted(data or [])}
 
 	def write(self, stream, path=None):
-		if self.parser.download_bool:
-			self.doc["downloads_directory"] = self.parser.output_dir
 		text = json.dumps(self.doc, ensure_ascii=False, indent=2) + "\n"
 		if path:
 			with open(path, "w", encoding="utf-8", newline="\n") as file:

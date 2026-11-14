@@ -61,7 +61,7 @@ snapintel -h
 python3 main.py -h
 ```
 ```
-usage: snapintel [-h] [-u USERNAME] [-s] [-l [OPTIONS]] [-m] [-d [OPTIONS]] [-o DIRECTORY] [-t TIMEOUT] [-T THREADS] [--self-check [USERNAME]] [--json [FILE]] [-V]
+usage: snapintel [-h] [-u USERNAME] [-s] [-l [OPTIONS]] [-m] [-d [OPTIONS]] [-o DIRECTORY] [-t TIMEOUT] [-T THREADS] [--self-check [USERNAME]] [--json [FILE]] [--verify [DIRECTORY]] [-V]
 
 SnapIntel OSINT Tool - Made by KrowZ
 
@@ -88,6 +88,8 @@ options:
   --json [FILE]         Write the results as JSON instead of text: to FILE (UTF-8), or to standard output without FILE.
                         The same sections as the text output, chosen with -s, -l and -d; the profile is always included.
                         Messages and progress go to standard error, so standard output is only the JSON.
+  --verify [DIRECTORY]  Check the files in a download folder against its snapintel-manifest.json, then exit (1 if any is missing or altered).
+                        Default: the current directory.
   -V, --version         show program's version number and exit
 
 EXAMPLES:
@@ -114,6 +116,30 @@ snapintel -u <SNAP_USER> -s --json stats.json        # statistics, written to a 
 ```
 
 It holds the same sections the text output would show (`stories`, `curated_highlights`, `spotlights`, `lenses`, `bitmojis`, `stats`), chosen with `-s`, `-l` and `-d` as usual, plus `profile`, which is always there. Values are typed: counts and durations (`duration_seconds`) are numbers, dates are ISO 8601 in UTC (`2026-08-18T17:59:08Z`), and figures Snapchat hides (an engagement count of -1) are `null`. Text keeps every script as it is, written as UTF-8. On Windows, `--json FILE` avoids the shell re-encoding the output.
+
+### Downloads: verify and resume
+
+Every file `-d` saves is recorded in `snapintel-manifest.json` in the output folder: its source URL, when it was downloaded, its SHA-256 and size, what it is (story, highlight, spotlight, lens or bitmoji) and its upload date when Snapchat gives one. The upload date also becomes the file's modification time.
+
+Files are named after their Snapchat media ID (`highlight_<id>.mp4`, `lens_<id>.mp4`, `bitmoji_<md5>.webp`), so running the same download again skips everything already saved and only fetches what's new. A file that no longer matches its recorded hash is never overwritten: it's reported, and the fresh copy is saved beside it as `<name>-<hash prefix>.<ext>`.
+
+To check later that nothing was changed or lost:
+
+```bash
+snapintel --verify ./data
+```
+
+It re-hashes every file in the manifest and lists any that are missing or altered (exit code 1), plus media files that aren't in the manifest.
+
+### Tests
+
+The tests run offline on page snapshots in `tests/fixtures` (the two reference accounts' page data, cut down to what SnapIntel reads), covering the text and JSON output, the self-check, downloads and the Arabic display:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+`python tests/fixtures/update_fixtures.py` refreshes the snapshots from snapchat.com; run the tests afterwards to see what a change on Snapchat's side broke. On GitHub, `.github/workflows/tests.yml` runs the tests on Linux and Windows for Python 3.10 to 3.14 on every push and pull request, and `self-check.yml` runs `snapintel --self-check` against the live site every Monday.
 
 ### When Snapchat changes its page
 

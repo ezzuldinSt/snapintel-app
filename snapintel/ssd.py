@@ -7,7 +7,7 @@ import hashlib
 import concurrent.futures
 from pathlib import Path
 
-from . import display, heatmap, snap_parser
+from . import display, downloads, heatmap, snap_parser
 
 class Snap_Story_Downloader:
 	def __init__(self):
@@ -19,8 +19,7 @@ class Snap_Story_Downloader:
 		self.headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
 		self.json_regex = r'<script[^>]+type="application/json"[^>]*>(.*?)</script>'
 		self.json_data = None
-		self.mp4_files = list()
-		self.jpg_files = list()
+		self.downloads = None   # a downloads.DownloadManager when -d is given
 		self.heatmap = heatmap.Snap_Heatmap()
 		self.json_data_paths = None
 		self.json_data = None
@@ -94,17 +93,13 @@ class Snap_Story_Downloader:
 
 				# As futures complete, collect the results
 				for future in concurrent.futures.as_completed(futures):
-					md5_hash, content = future.result()
+					md5_hash, content, version_url = future.result()
 					if md5_hash and md5_hash not in result:
 						result.add(md5_hash)
-						# Optional: Save content to a file
-						if(self.parser.download_bitmojis or self.parser.download_all):
+						# Optional: Save content to a file (recorded in the download manifest)
+						if(self.downloads is not None and (self.parser.download_bitmojis or self.parser.download_all)):
 							try:
-								with open(self.parser.output_dir + f"{md5_hash}.webp", 'wb') as file:
-									file.write(content)
-							except FileNotFoundError:
-								print("Error can't find the specified folder")
-								exit(1)
+								self.downloads.store(f"bitmoji_{md5_hash}.webp", content, version_url, "bitmoji")
 							except PermissionError:
 								print("Error can't access the specified folder. Check permissions or run this program with sudo rights")
 								exit(2)
@@ -125,11 +120,11 @@ class Snap_Story_Downloader:
 			for data in response.iter_content(8192):
 				md5_hash.update(data)
 
-			# Return the md5 hash and content
-			return md5_hash.hexdigest(), response.content
+			# Return the md5 hash, content and the URL it came from
+			return md5_hash.hexdigest(), response.content, final_url
 		except requests.exceptions.Timeout:
 			print(f"Timeout reached for version {version}")
-			return None, None
+			return None, None, None
 
 	#When calling the print function, check for the third item. If true then get some info else, get other ones
 	def get_basic_information(self) -> list:
@@ -184,11 +179,8 @@ class Snap_Story_Downloader:
 			result.append(len(story))
 			
 			for snap in story:
-				if(self.parser.download_stories or self.parser.download_all or self.parser.stats):
-					if(snap["snapMediaType"] == 0):
-						self.jpg_files.append(snap["snapUrls"]["mediaUrl"])
-					else:
-						self.mp4_files.append(snap["snapUrls"]["mediaUrl"])
+				if(self.parser.download_stories or self.parser.download_all):
+					self.queue_download(snap["snapUrls"]["mediaUrl"], snap["snapMediaType"], "story", self.snap_time(snap))
 				if(self.parser.list_stories or self.parser.list_all):
 					snap_item = list()
 					snap_item.append(snap["snapIndex"])
@@ -222,10 +214,7 @@ class Snap_Story_Downloader:
 					#Retrieve the same data as for basic snap stories
 					for story in snap["snapList"]:
 						if(self.parser.download_highlights or self.parser.download_all):
-							if(story["snapMediaType"] == 0):
-								self.jpg_files.append(story["snapUrls"]["mediaUrl"])
-							else:
-								self.mp4_files.append(story["snapUrls"]["mediaUrl"])
+							self.queue_download(story["snapUrls"]["mediaUrl"], story["snapMediaType"], "highlight", self.snap_time(story))
 						story_item = list()
 						story_item.append(story["snapIndex"])
 						story_item.append(story["snapUrls"]["mediaUrl"])
@@ -305,10 +294,7 @@ class Snap_Story_Downloader:
 							story_item = list()
 
 							if(self.parser.download_spotlights or self.parser.download_all):
-								if(story["snapMediaType"] == 0):
-									self.jpg_files.append(story["snapUrls"]["mediaUrl"])
-								else:
-									self.mp4_files.append(story["snapUrls"]["mediaUrl"])
+								self.queue_download(story["snapUrls"]["mediaUrl"], story["snapMediaType"], "spotlight", int(self.get_value("spotlightUploadDate", count)) / 1000)
 
 							story_item.append(story["snapIndex"])
 							story_item.append(story["snapUrls"]["mediaUrl"])
@@ -340,7 +326,7 @@ class Snap_Story_Downloader:
 		for lense in lenses:
 			lense_item = list()
 			if(self.parser.download_lenses or self.parser.download_all):
-				self.mp4_files.append(lense["lensPreviewVideoUrl"])
+				self.queue_download(lense["lensPreviewVideoUrl"], 1, "lens")
 			if(self.parser.list_lenses or self.parser.list_all or self.parser.stats):
 				lense_item.append(lense["lensName"])
 				lense_item.append(lense["isOfficialSnapLens"])
@@ -447,7 +433,19 @@ class Snap_Story_Downloader:
 
 	#	print(f"Total size: {total_length/1000000:.2f} Mo")
 
-	#Downloads the stories and save each of them in a separate file
+	# Queue one media file for download; the manager names, de-duplicates and records it.
+	def queue_download(self, url, media_type, category, uploaded_unix=None):
+		if(self.downloads is not None):
+			self.downloads.add(url, "jpg" if media_type == 0 else "mp4", category, downloads.iso_from_unix(uploaded_unix))
+
+	# A snap's upload time in seconds since 1970, when Snapchat gives one.
+	def snap_time(self, snap):
+		try:
+			return int(snap["timestampInSec"]["value"])
+		except (KeyError, TypeError, ValueError):
+			return None
+
+	#Downloads the queued stories, highlights, spotlights and lenses. Files saved by an earlier run are skipped.
 	def download_files(self):
 		message = "stories, highlights, spotlights and lenses"
 
@@ -459,50 +457,13 @@ class Snap_Story_Downloader:
 			message = "spotlights"
 
 		print(f"Starting downloading {message} ...")
-
-		# Use ThreadPoolExecutor to download files in parallel
-		with concurrent.futures.ThreadPoolExecutor(max_workers=self.parser.threads) as executor:
-			# Submit each download task to the executor
-			futures = []
-
-			for count, url in enumerate(self.mp4_files):
-				futures.append(executor.submit(self.download_and_save, url, count, "mp4"))
-			for count, url in enumerate(self.jpg_files):
-				futures.append(executor.submit(self.download_and_save, url, count, "jpg"))
-
-			# Optionally, wait for all threads to complete and handle errors
-			for future in concurrent.futures.as_completed(futures):
-				try:
-					future.result()  # This will raise exceptions if they occurred in threads
-				except Exception as e:
-					print(f"Error occurred in a thread: {e}")
-
-		print(f"All {message} saved in {self.parser.output_dir}")
-
-	def download_and_save(self, url, count, ext):
-		try:
-			# Download the file from the URL
-			#print(f"Downloading file {count} from {url}")
-			dl_url = requests.get(url, timeout=self.parser.timeout, headers=self.headers)
-			# Save the file
-			self.save_file(dl_url, url, count, ext)
-		except requests.exceptions.Timeout:
-			print(f"Timeout reached for {url}")
-		except Exception as e:
-			print(f"Error downloading {url}: {e}")
-
-	#Save the data (mp4) to a file
-	def save_file(self, data, url, count, ext):
-		filename = "/" + str(count) + "_" + url.split("/")[4].split(".")[0] + "." + ext
-		try:
-			with open(self.parser.output_dir + filename, 'wb') as file:
-				file.write(data.content)
-		except FileNotFoundError:
-			print("Error can't find the specified folder")
-			exit(1)
-		except PermissionError:
-			print("Error can't access the specified folder. Check permissions or run this program with sudo rights")
-			exit(2)
+		counts = self.downloads.run()
+		print(f"Downloaded {counts['downloaded']}, skipped {counts['skipped']} saved by an earlier run"
+		      + (f", {counts['already_present']} identical to a file already there" if counts["already_present"] else "")
+		      + (f", {counts['failed']} failed" if counts["failed"] else ""))
+		if(self.downloads.altered):
+			print(f"Changed on disk since they were downloaded, so left as they are (the new copy is saved beside each): {', '.join(self.downloads.altered)}")
+		print(f"All {message} saved in {self.downloads.directory}, recorded in {downloads.MANIFEST}")
 
 	#Main function
 	def run(self):
@@ -511,9 +472,15 @@ class Snap_Story_Downloader:
 			from . import selfcheck
 			self.load_paths()
 			sys.exit(selfcheck.run(self, self.parser.self_check_accounts))
+		if(self.parser.verify_dir is not None):
+			sys.exit(downloads.verify(self.parser.verify_dir))
 		self.update_url()
+		if(self.parser.download_bool):
+			self.downloads = downloads.DownloadManager(self.parser.output_dir, self.parser.username, self.headers, self.parser.timeout, self.parser.threads)
 		if(not self.parser.json_output):
 			self.make_request()
+			if(self.downloads is not None):
+				self.downloads.save()   # bitmojis are stored as they are found, so record them too
 			return
 
 		# --json: collect into a JsonDisplay instead of printing, and send every other message (progress,
@@ -524,10 +491,14 @@ class Snap_Story_Downloader:
 		sys.stdout = sys.stderr
 		try:
 			ok = self.make_request()
+			if(self.downloads is not None):
+				self.downloads.save()
 		finally:
 			sys.stdout = json_stream
 		if(not ok or "profile" not in self.display.doc):
 			sys.exit(1)
+		if(self.downloads is not None):
+			self.display.doc["downloads"] = self.downloads.summary()
 		self.display.write(json_stream, self.parser.json_path)
 		if(self.parser.json_path):
 			print(f"JSON written to {self.parser.json_path}", file=sys.stderr)

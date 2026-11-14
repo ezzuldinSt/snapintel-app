@@ -10,7 +10,7 @@ readme = "README.md"
 license = "AGPL-3.0-only"
 license-files = ["LICENSE"]
 authors = [{ name = "Kr0wZ" }]
-requires-python = ">=3.9"
+requires-python = ">=3.10"   # the oldest version the tests run on (see .github/workflows/tests.yml)
 # argparse and datetime are part of Python; the PyPI packages of those names are an old argparse
 # backport and Zope's unrelated DateTime, so they are no longer listed.
 dependencies = [
