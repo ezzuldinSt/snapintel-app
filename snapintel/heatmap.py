@@ -1,7 +1,5 @@
-import pandas as pnd
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
+# pandas, numpy, seaborn and matplotlib take seconds to import, and only -m/--heatmap uses them,
+# so they are imported where the heatmap is built rather than when SnapIntel starts.
 
 class Snap_Heatmap:
 	def __init__(self):
@@ -17,9 +15,11 @@ class Snap_Heatmap:
 
 	#Convert all the string dates into datetime object
 	def convert_str_to_date(self):
+		import pandas as pnd
 		return pnd.to_datetime(self._dates_str, format='%Y-%m-%d %H:%M:%S')
 
 	def compute_dates(self, dates):
+		import pandas as pnd
 		#Create a DataFrame
 		data = pnd.DataFrame({'dates': dates})
 
@@ -33,6 +33,10 @@ class Snap_Heatmap:
 		return data
 
 	def generate_heatmap(self):
+		import numpy as np
+		import seaborn as sns
+		import matplotlib.pyplot as plt
+
 		self.sort_uniq_dates()
 		dt_dates = self.convert_str_to_date()
 		data = self.compute_dates(dt_dates)

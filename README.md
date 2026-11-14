@@ -36,8 +36,10 @@ You can run this command to install `SnapIntel` and then use it from anywhere on
 ```bash
 pip install .
 
-# Now you can use "snapintel" as a command
+# Now you can use "snapintel" as a command (or "python3 -m snapintel")
 ```
+
+To work on the code, install it in editable mode instead (`pip install -e .`): the command then runs the files in this folder, and `git pull` updates it without reinstalling.
 
 Or run the following command to install the dependencies:
 ```bash
@@ -59,7 +61,7 @@ snapintel -h
 python3 main.py -h
 ```
 ```
-usage: main.py [-h] [-u USERNAME] [-s] [-l [OPTIONS]] [-m] [-d [OPTIONS]] [-o DIRECTORY] [-t TIMEOUT] [-T THREADS]
+usage: snapintel [-h] [-u USERNAME] [-s] [-l [OPTIONS]] [-m] [-d [OPTIONS]] [-o DIRECTORY] [-t TIMEOUT] [-T THREADS] [--self-check [USERNAME]] [-V]
 
 SnapIntel OSINT Tool - Made by KrowZ
 
@@ -79,6 +81,11 @@ options:
                         Requests timeout. Default : 30 seconds
   -T THREADS, --threads THREADS
                         Number of concurrent threads. Default : 10
+  --self-check [USERNAME]
+                        Check that Snapchat's page still matches config.json, then exit (1 if a field no longer resolves).
+                        Without USERNAME it checks the reference accounts 'spectacles' and 'bitmoji', which cover every field.
+                        Prints each field's status with its type and a short sample.
+  -V, --version         show program's version number and exit
 
 EXAMPLES:
 Show stats for a specific user:
@@ -93,6 +100,20 @@ List stories, spotlights and generate a heatmap related to this data based on up
 List stories, download everything (stories, curated highlights, spotlights, lenses) and store them to directory 'data':
         python3 main.py -u <SNAP_USER> -l s -d a -o ./data
 ```
+
+### When Snapchat changes its page
+
+SnapIntel reads every field through a path into the JSON that snapchat.com embeds in profile pages, listed in `snapintel/config.json`. When Snapchat renames or moves something, those fields come back empty or wrong without any error. Run:
+
+```bash
+snapintel --self-check
+```
+
+It loads two of Snap's own accounts and marks each path `OK`, `EMPTY` (the page has the key but this account has nothing there), `SKIPPED` or `MISSING`. For a `MISSING` path it shows where the path stops and which keys are there instead, which is usually enough to update `config.json`. The exit code is 1 when a path is `MISSING`, so it can run in a scheduled job or CI. `snapintel --self-check <USERNAME>` checks one account instead, for fields that were empty on the reference accounts.
+
+### Arabic and other right-to-left text
+
+Most terminals, including the Windows console, draw text strictly left to right and don't join Arabic letters, so Arabic names and bios come out reversed and broken apart. When printing to a terminal, SnapIntel joins the letters and puts right-to-left text in reading order (with `arabic-reshaper` and `python-bidi`). Output redirected to a file or another program keeps the original text. Set `SNAPINTEL_RTL=0` for a terminal that already handles right-to-left text, or `SNAPINTEL_RTL=1` to force it on.
 
 
 

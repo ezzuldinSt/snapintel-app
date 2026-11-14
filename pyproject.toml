@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "snapintel"
+dynamic = ["version"]
+description = "Investigate Snapchat users with SnapIntel"
+readme = "README.md"
+license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
+authors = [{ name = "Kr0wZ" }]
+requires-python = ">=3.9"
+# argparse and datetime are part of Python; the PyPI packages of those names are an old argparse
+# backport and Zope's unrelated DateTime, so they are no longer listed.
+dependencies = [
+    "requests",
+    "colorama",
+    "pandas",
+    "numpy",
+    "seaborn",
+    "matplotlib",
+    "arabic-reshaper",
+    "python-bidi",
+]
+
+[project.scripts]
+snapintel = "snapintel.cli:main"
+
+[tool.setuptools]
+packages = ["snapintel"]
+
+[tool.setuptools.dynamic]
+version = { attr = "snapintel.__version__" }
+
+[tool.setuptools.package-data]
+snapintel = ["config.json"]

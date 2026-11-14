@@ -1,8 +1,8 @@
 requests
-argparse
-datetime
+colorama
 pandas
 numpy
 seaborn
 matplotlib
-colorama
+arabic-reshaper
+python-bidi

@@ -1,5 +1,11 @@
 import argparse
-import ssd
+
+from . import __version__
+
+# Reference accounts for --self-check, both Snap Inc.'s own: Spectacles (now redirecting to @specsdevs) shows
+# the public profile layout with highlights, spotlights and lenses; Bitmoji shows the other (non-public)
+# layout, though without a 3D Bitmoji, so the two avatar fields can only be confirmed on another account.
+SELF_CHECK_ACCOUNTS = ["spectacles", "bitmoji"]
 
 class Parser:
 	def __init__(self):
@@ -32,6 +38,9 @@ class Parser:
 		self.download_lenses = False
 		self.download_bitmojis = False
 
+		self.self_check = False
+		self.self_check_accounts = []
+
 
 	def build_arg_parser(self):	
 		epilog = f"EXAMPLES:\nShow stats for a specific user:\n\tpython3 main.py -u <SNAP_USER> -s\n\nList all elements (account, stories, curated highlights, spotlights, lenses) for a specific user:\n\tpython3 main.py -u <SNAP_USER> -l a\n\nList stories, spotlights and generate a heatmap related to this data based on upload date:\n\tpython3 main.py -u <SNAP_USER> -l sp -m\n\nList stories, download everything (stories, curated highlights, spotlights, lenses) and store them to directory 'data':\n\tpython3 main.py -u <SNAP_USER> -l s -d a -o ./data"	
@@ -44,10 +53,25 @@ class Parser:
 		self.parser.add_argument("-m", "--heatmap", dest="heatmap", action="store_true", help="Generates a heatmap related to upload dates. Must be used with '-l/--list' option")
 		self.parser.add_argument("-d", "--download", nargs="?", const="s", metavar='OPTIONS', help="Downloads specific videos posted by a user. By default, only downloads current stories. 'a' = all, 's' = stories, 'c' = curated highlights, 'p' = spotlights, 'l' = lenses, 'b' = bitmojis. Multiple options can be combined together: E.g: -d 'csl'")
 		self.parser.add_argument("-o", "--output", dest="output", type=str, metavar='DIRECTORY', help="Path where stories are stored. Default : current directory")
-		self.parser.add_argument("-t", "--timeout", dest="timeout", type=str, help="Requests timeout. Default : 30 seconds")
+		self.parser.add_argument("-t", "--timeout", dest="timeout", type=float, help="Requests timeout. Default : 30 seconds")
 		self.parser.add_argument("-T", "--threads", dest="threads", type=int, help="Number of concurrent threads. Default : 10")
+		self.parser.add_argument("--self-check", dest="self_check", nargs="?", const="", metavar="USERNAME", help="Check that Snapchat's page still matches config.json, then exit (1 if a field no longer resolves).\nWithout USERNAME it checks the reference accounts " + " and ".join(f"'{a}'" for a in SELF_CHECK_ACCOUNTS) + ", which cover every field.\nPrints each field's status with its type and a short sample.")
+		self.parser.add_argument("-V", "--version", action="version", version=f"SnapIntel {__version__}")
 
 		self.args = self.parser.parse_args()
+
+		# --self-check needs nothing else; with no USERNAME, -u is used, then the reference accounts.
+		if("self_check" in self.args):
+			self.self_check = True
+			if(self.args.self_check):
+				self.self_check_accounts = [self.args.self_check]
+			elif("username" in self.args):
+				self.self_check_accounts = [self.args.username]
+			else:
+				self.self_check_accounts = list(SELF_CHECK_ACCOUNTS)
+			if("timeout" in self.args):
+				self.timeout = self.args.timeout
+			return
 
 		#It means the user specified the -l option but with nothing behind
 		if("list" in self.args):

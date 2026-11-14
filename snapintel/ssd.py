@@ -1,12 +1,13 @@
 import requests
 import re
+import sys
 import json
 import datetime
-import heatmap
-import snap_parser
-import display
 import hashlib
 import concurrent.futures
+from pathlib import Path
+
+from . import display, heatmap, snap_parser
 
 class Snap_Story_Downloader:
 	def __init__(self):
@@ -41,11 +42,12 @@ class Snap_Story_Downloader:
 			print("Timeout reached")
 
 
-	def load_paths(self, response, file):
-		with open(file, "r") as config_file:
+	def load_paths(self, response=None, file="config.json"):
+		# config.json ships inside the package, next to this module, so the command works from any folder.
+		with (Path(__file__).parent / file).open("r", encoding="utf-8") as config_file:
 			config_data = json.load(config_file)
 
-		self.json_data_paths = config_data.get("json_data_paths", [])
+		self.json_data_paths = config_data.get("json_data_paths", {})
 
 	# Returns the corresponding value given a path and a data
 	def get_value(self, data_name, placeholders=None):
@@ -499,9 +501,9 @@ class Snap_Story_Downloader:
 	#Main function
 	def run(self):
 		self.parser.build_arg_parser()
+		if(self.parser.self_check):
+			from . import selfcheck
+			self.load_paths()
+			sys.exit(selfcheck.run(self, self.parser.self_check_accounts))
 		self.update_url()
 		self.make_request()
-
-if(__name__ == "__main__"):
-	snap_dl = Snap_Story_Downloader()
-	snap_dl.run()

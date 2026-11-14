@@ -1,4 +1,99 @@
+import os
+import re
+import sys
+import threading
+
 from colorama import Fore, Style
+
+# Windows consoles (and most terminals) draw text left to right in stored order and don't join Arabic
+# letters, so Arabic profile text comes out reversed and broken apart. When printing to a console,
+# RtlConsole joins the letters (arabic_reshaper) and puts each right-to-left run in display order
+# (python-bidi), one line and one colour segment at a time. Output sent to a file or pipe keeps the
+# original text. SNAPINTEL_RTL=0 turns this off (for a terminal with its own RTL support), =1 forces it.
+_RTL_CHARS = re.compile(r'[֐-ࣿיִ-﷿ﹰ-ﻼ]')
+_ARABIC_CHARS = re.compile(r'[؀-ࣿﭐ-﷿ﹰ-ﻼ]')
+_ANSI_ESCAPE = re.compile(r'(\x1b\[[0-9;?]*[ -/]*[@-~])')
+# An emoji with what follows it (variation selector, skin tone, keycap, ZWJ sequence). Reordering would put
+# those after-characters in front of the emoji, so each sequence rides through as one stand-in symbol
+# (Control Pictures U+2400-2426: neutral like the emoji, and not expected in profile text).
+_EMOJI = '[←-⯿〰〽㊗㊙\U0001F000-\U0001FAFF]'
+_EMOJI_SEQUENCE = re.compile(_EMOJI + '(?:[︎️⃣\U0001F3FB-\U0001F3FF]|‍' + _EMOJI + ')+')
+_STAND_INS = [chr(c) for c in range(0x2400, 0x2427)]
+
+
+def _visual_segment(segment, reshape, get_display):
+	if not _RTL_CHARS.search(segment):
+		return segment
+	core = segment.strip()
+	lead = segment[:len(segment) - len(segment.lstrip())]
+	trail = segment[len(segment.rstrip()):]
+	if _ARABIC_CHARS.search(core):
+		core = reshape(core)
+	sequences = []
+	if not any(s in core for s in _STAND_INS):
+		def stash(match):
+			if len(sequences) == len(_STAND_INS):
+				return match.group(0)
+			sequences.append(match.group(0))
+			return _STAND_INS[len(sequences) - 1]
+		core = _EMOJI_SEQUENCE.sub(stash, core)
+	visual = get_display(core)
+	for stand_in, sequence in zip(_STAND_INS, sequences):
+		visual = visual.replace(stand_in, sequence)
+	return lead + visual + trail
+
+
+class RtlConsole:
+	def __init__(self, stream, reshape, get_display):
+		self._stream = stream
+		self._reshape = reshape
+		self._get_display = get_display
+		self._pending = ""
+		self._lock = threading.Lock()
+
+	def _visual_line(self, line):
+		if not _RTL_CHARS.search(line):
+			return line
+		parts = _ANSI_ESCAPE.split(line)
+		return "".join(p if _ANSI_ESCAPE.fullmatch(p) else _visual_segment(p, self._reshape, self._get_display) for p in parts)
+
+	def write(self, text):
+		with self._lock:
+			self._pending += text
+			if "\n" in self._pending:
+				*lines, self._pending = self._pending.split("\n")
+				self._stream.write("".join(self._visual_line(l) + "\n" for l in lines))
+		return len(text)
+
+	def flush(self):
+		with self._lock:
+			if self._pending:
+				self._stream.write(self._visual_line(self._pending))
+				self._pending = ""
+			self._stream.flush()
+
+	def __getattr__(self, name):
+		return getattr(self._stream, name)
+
+
+def enable_rtl_console():
+	mode = os.environ.get("SNAPINTEL_RTL", "auto").strip().lower()
+	if mode in ("0", "off", "no", "false"):
+		return
+	if mode not in ("1", "on", "yes", "true") and not sys.stdout.isatty():
+		return
+	try:
+		import arabic_reshaper
+		try:
+			# python-bidi's pure-Python implementation mirrors brackets: "(@user)" in Arabic text shows as
+			# "(user@)", as a browser draws it. Its Rust get_display (python-bidi 0.5+) leaves ")user@(".
+			from bidi.algorithm import get_display
+		except ImportError:
+			from bidi import get_display
+	except ImportError:
+		return
+	sys.stdout = RtlConsole(sys.stdout, arabic_reshaper.reshape, get_display)
+
 
 class Display:
 	def __init__(self, parser, ssd):
