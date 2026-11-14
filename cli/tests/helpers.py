@@ -1,4 +1,4 @@
-"""Run SnapIntel in-process against the page snapshots in fixtures/, with no network access."""
+"""Run SnapIntel in-process against the page snapshots in tests/fixtures (shared with the desktop app), with no network access."""
 import io
 import json
 import os
@@ -8,7 +8,7 @@ from unittest import mock
 
 import snapintel.cli
 
-FIXTURES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures")
+FIXTURES = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tests", "fixtures"))
 PAGES = {"spectacles": "public_profile.html", "bitmoji": "nonpublic_profile.html"}
 ANSI = re.compile(r"\x1b\[[0-9;]*m")
 

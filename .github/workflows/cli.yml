@@ -1,9 +1,17 @@
-# Offline tests on the page snapshots in tests/fixtures: no network access, a few seconds per job.
-name: tests
+# The command-line tool (cli/): offline tests on the page snapshots in tests/fixtures.
+# No network access, a few seconds per job.
+name: cli
 
 on:
   push:
+    paths: ["cli/**", "tests/fixtures/**", ".github/workflows/cli.yml"]
   pull_request:
+    paths: ["cli/**", "tests/fixtures/**", ".github/workflows/cli.yml"]
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: cli
 
 jobs:
   test:

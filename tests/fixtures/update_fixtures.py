@@ -1,5 +1,6 @@
 """Refresh the page snapshots the tests run on: python tests/fixtures/update_fixtures.py
 
+The command-line tool's tests (cli/tests) and the desktop app's (desktop/core/tests) both run on them.
 Each snapshot is a reference account's profile page reduced to what SnapIntel reads: the embedded page
 JSON with only the props.pageProps sections in config.json, lists cut to their first few items, and none
 of the page's HTML. When Snapchat changes its page, refresh the snapshots and run the tests to see what
@@ -12,7 +13,7 @@ import sys
 
 import requests
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "cli"))
 from snapintel.ssd import Snap_Story_Downloader  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))

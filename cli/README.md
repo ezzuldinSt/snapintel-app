@@ -1,15 +1,17 @@
-![SnapIntel Logo](https://github.com/Kr0wZ/SnapIntel/blob/master/assets/snapintel_logo.png?raw=true)
+![SnapIntel Logo](assets/snapintel_logo.png)
 
-# SnapIntel
+# SnapIntel for the command line
 
 ### What is it?
 
 SnapIntel is a python tool providing you information about Snapchat users. You can list stories, curated highlights, spotlights, lenses and even download all of them!
 The heatmap functionality allows you to generate a heatmap related to upload dates for specific categories.
 
+This is the original tool by [Kr0wZ](https://github.com/Kr0wZ/SnapIntel), packaged as `snapintel` with JSON output, verifiable downloads, a self-check and tests. It lives in this folder (`cli/`) of [snapintel-app](../README.md).
+
 ### Desktop app
 
-There is also a desktop app for Windows and Linux, written in Rust, in [`desktop/`](desktop/README.md): the same lookups in a window, with a media viewer, Spotlight details, insights, verifiable downloads and JSON/CSV export. The Python command-line tool described below still works on its own.
+Prefer a window? The desktop app for Windows and Linux, written in Rust, is the main part of this repository. It does the same lookups in a window, with a media viewer, Spotlight details, insights, verifiable downloads and JSON/CSV export: see the [front page](../README.md). The Python command-line tool described below works on its own.
 
 ### Updates
 
@@ -31,8 +33,8 @@ The old tool (and its first version) was named **Snapchat_stories_dl** and was o
 
 Clone this repository and jump in it:
 ```bash
-git clone https://github.com/Kr0wZ/SnapIntel/
-cd SnapIntel
+git clone https://github.com/ezzuldinSt/snapintel-app
+cd snapintel-app/cli
 ```
 
 You must have `python3` installed on your machine.
@@ -137,13 +139,13 @@ It re-hashes every file in the manifest and lists any that are missing or altere
 
 ### Tests
 
-The tests run offline on page snapshots in `tests/fixtures` (the two reference accounts' page data, cut down to what SnapIntel reads), covering the text and JSON output, the self-check, downloads and the Arabic display:
+The tests run offline on page snapshots in `../tests/fixtures`, which the desktop app's tests share (the two reference accounts' page data, cut down to what SnapIntel reads), covering the text and JSON output, the self-check, downloads and the Arabic display:
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-`python tests/fixtures/update_fixtures.py` refreshes the snapshots from snapchat.com; run the tests afterwards to see what a change on Snapchat's side broke. On GitHub, `.github/workflows/tests.yml` runs the tests on Linux and Windows for Python 3.10 to 3.14 on every push and pull request, and `self-check.yml` runs `snapintel --self-check` against the live site every Monday.
+`python ../tests/fixtures/update_fixtures.py` refreshes the snapshots from snapchat.com; run the tests afterwards to see what a change on Snapchat's side broke. On GitHub, `.github/workflows/cli.yml` runs the tests on Linux and Windows for Python 3.10 to 3.14 on every push and pull request, and `self-check.yml` runs `snapintel --self-check` against the live site every Monday.
 
 ### When Snapchat changes its page
 
@@ -161,18 +163,9 @@ Most terminals, including the Windows console, draw text strictly left to right 
 
 
 
-### Todo
+### Support the original author
 
-- Implement `watch` functionality (monitoring) to check a user every X minutes for new stories and download them if not already done.
-- Fix bugs?
-
-
-
-### Support
-
-Do you want to support me?
-
-You can buy me a coffee here:
+The command-line tool was written by Kr0wZ. If it is useful to you, you can buy them a coffee here:
 <a href="https://www.buymeacoffee.com/krowz" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50" ></a> 
 
 
