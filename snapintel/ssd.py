@@ -38,8 +38,10 @@ class Snap_Story_Downloader:
 		try:
 			response = requests.get(self.url, timeout=self.parser.timeout, headers=self.headers).text
 			self.get_info(response)
+			return True
 		except requests.exceptions.Timeout:
 			print("Timeout reached")
+			return False
 
 
 	def load_paths(self, response=None, file="config.json"):
@@ -72,6 +74,10 @@ class Snap_Story_Downloader:
 	def bitmojis(self, url) -> list:
 		if(self.parser.list_bitmojis or self.parser.list_all or self.parser.download_bitmojis or self.parser.download_all):
 			result = set()  # Use a set to store unique md5 hashes
+
+			# Some accounts have no 3D Bitmoji, so there is no avatar URL to derive versions from.
+			if(not url):
+				return []
 
 			# Split the URL to get the base and end parts
 			base_url = url.split("_")[0]
@@ -299,10 +305,10 @@ class Snap_Story_Downloader:
 							story_item = list()
 
 							if(self.parser.download_spotlights or self.parser.download_all):
-								if(snap["snapMediaType"] == 0):
-									self.jpg_files.append(snap["snapUrls"]["mediaUrl"])
+								if(story["snapMediaType"] == 0):
+									self.jpg_files.append(story["snapUrls"]["mediaUrl"])
 								else:
-									self.mp4_files.append(snap["snapUrls"]["mediaUrl"])
+									self.mp4_files.append(story["snapUrls"]["mediaUrl"])
 
 							story_item.append(story["snapIndex"])
 							story_item.append(story["snapUrls"]["mediaUrl"])
@@ -506,4 +512,22 @@ class Snap_Story_Downloader:
 			self.load_paths()
 			sys.exit(selfcheck.run(self, self.parser.self_check_accounts))
 		self.update_url()
-		self.make_request()
+		if(not self.parser.json_output):
+			self.make_request()
+			return
+
+		# --json: collect into a JsonDisplay instead of printing, and send every other message (progress,
+		# errors) to standard error, so standard output carries nothing but the JSON document.
+		from . import jsonout
+		json_stream = getattr(sys.stdout, "_stream", sys.stdout)   # past the RTL console wrapper: JSON keeps the original text
+		self.display = jsonout.JsonDisplay(self.parser, self)
+		sys.stdout = sys.stderr
+		try:
+			ok = self.make_request()
+		finally:
+			sys.stdout = json_stream
+		if(not ok or "profile" not in self.display.doc):
+			sys.exit(1)
+		self.display.write(json_stream, self.parser.json_path)
+		if(self.parser.json_path):
+			print(f"JSON written to {self.parser.json_path}", file=sys.stderr)

@@ -41,6 +41,9 @@ class Parser:
 		self.self_check = False
 		self.self_check_accounts = []
 
+		self.json_output = False
+		self.json_path = None
+
 
 	def build_arg_parser(self):	
 		epilog = f"EXAMPLES:\nShow stats for a specific user:\n\tpython3 main.py -u <SNAP_USER> -s\n\nList all elements (account, stories, curated highlights, spotlights, lenses) for a specific user:\n\tpython3 main.py -u <SNAP_USER> -l a\n\nList stories, spotlights and generate a heatmap related to this data based on upload date:\n\tpython3 main.py -u <SNAP_USER> -l sp -m\n\nList stories, download everything (stories, curated highlights, spotlights, lenses) and store them to directory 'data':\n\tpython3 main.py -u <SNAP_USER> -l s -d a -o ./data"	
@@ -56,6 +59,7 @@ class Parser:
 		self.parser.add_argument("-t", "--timeout", dest="timeout", type=float, help="Requests timeout. Default : 30 seconds")
 		self.parser.add_argument("-T", "--threads", dest="threads", type=int, help="Number of concurrent threads. Default : 10")
 		self.parser.add_argument("--self-check", dest="self_check", nargs="?", const="", metavar="USERNAME", help="Check that Snapchat's page still matches config.json, then exit (1 if a field no longer resolves).\nWithout USERNAME it checks the reference accounts " + " and ".join(f"'{a}'" for a in SELF_CHECK_ACCOUNTS) + ", which cover every field.\nPrints each field's status with its type and a short sample.")
+		self.parser.add_argument("--json", dest="json", nargs="?", const="-", metavar="FILE", help="Write the results as JSON instead of text: to FILE (UTF-8), or to standard output without FILE.\nThe same sections as the text output, chosen with -s, -l and -d; the profile is always included.\nMessages and progress go to standard error, so standard output is only the JSON.")
 		self.parser.add_argument("-V", "--version", action="version", version=f"SnapIntel {__version__}")
 
 		self.args = self.parser.parse_args()
@@ -72,6 +76,10 @@ class Parser:
 			if("timeout" in self.args):
 				self.timeout = self.args.timeout
 			return
+
+		if("json" in self.args):
+			self.json_output = True
+			self.json_path = None if self.args.json == "-" else self.args.json
 
 		#It means the user specified the -l option but with nothing behind
 		if("list" in self.args):

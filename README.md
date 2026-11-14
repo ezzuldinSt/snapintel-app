@@ -61,7 +61,7 @@ snapintel -h
 python3 main.py -h
 ```
 ```
-usage: snapintel [-h] [-u USERNAME] [-s] [-l [OPTIONS]] [-m] [-d [OPTIONS]] [-o DIRECTORY] [-t TIMEOUT] [-T THREADS] [--self-check [USERNAME]] [-V]
+usage: snapintel [-h] [-u USERNAME] [-s] [-l [OPTIONS]] [-m] [-d [OPTIONS]] [-o DIRECTORY] [-t TIMEOUT] [-T THREADS] [--self-check [USERNAME]] [--json [FILE]] [-V]
 
 SnapIntel OSINT Tool - Made by KrowZ
 
@@ -85,6 +85,9 @@ options:
                         Check that Snapchat's page still matches config.json, then exit (1 if a field no longer resolves).
                         Without USERNAME it checks the reference accounts 'spectacles' and 'bitmoji', which cover every field.
                         Prints each field's status with its type and a short sample.
+  --json [FILE]         Write the results as JSON instead of text: to FILE (UTF-8), or to standard output without FILE.
+                        The same sections as the text output, chosen with -s, -l and -d; the profile is always included.
+                        Messages and progress go to standard error, so standard output is only the JSON.
   -V, --version         show program's version number and exit
 
 EXAMPLES:
@@ -100,6 +103,17 @@ List stories, spotlights and generate a heatmap related to this data based on up
 List stories, download everything (stories, curated highlights, spotlights, lenses) and store them to directory 'data':
         python3 main.py -u <SNAP_USER> -l s -d a -o ./data
 ```
+
+### JSON output
+
+Add `--json` to get the results as one JSON document instead of coloured text, for scripts and spreadsheets:
+
+```bash
+snapintel -u <SNAP_USER> -l a --json > user.json     # everything, on standard output
+snapintel -u <SNAP_USER> -s --json stats.json        # statistics, written to a file
+```
+
+It holds the same sections the text output would show (`stories`, `curated_highlights`, `spotlights`, `lenses`, `bitmojis`, `stats`), chosen with `-s`, `-l` and `-d` as usual, plus `profile`, which is always there. Values are typed: counts and durations (`duration_seconds`) are numbers, dates are ISO 8601 in UTC (`2026-08-18T17:59:08Z`), and figures Snapchat hides (an engagement count of -1) are `null`. Text keeps every script as it is, written as UTF-8. On Windows, `--json FILE` avoids the shell re-encoding the output.
 
 ### When Snapchat changes its page
 
