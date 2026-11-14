@@ -34,7 +34,42 @@ def trim(page_props):
 	for highlight in kept.get("curatedHighlights") or []:
 		if isinstance(highlight.get("snapList"), list):
 			highlight["snapList"] = highlight["snapList"][:ITEMS]
+	if "encodedSpotlightComments" in page_props:
+		kept["encodedSpotlightComments"] = stand_in_comments(page_props["encodedSpotlightComments"], kept.get("spotlightHighlights") or [])
 	return kept
+
+
+def stand_in_comments(encoded, spotlights):
+	"""The page's comments, reduced to their shape: other people wrote them, so their words and
+	everything naming them are replaced before anything is saved to the repository."""
+	wanted = set()
+	for spotlight in spotlights:
+		wanted.add(((spotlight or {}).get("storyId") or {}).get("value"))
+		for snap in (spotlight or {}).get("snapList") or []:
+			wanted.add((snap.get("snapId") or {}).get("value"))
+	try:
+		groups = json.loads(encoded or "[]")
+	except ValueError:
+		groups = []
+	stand_ins, number = [], 0
+	for group in groups:
+		kept = []
+		for comment in group[:ITEMS]:
+			if comment.get("snapId") not in wanted:
+				continue
+			number += 1
+			kept.append({
+				"snapId": comment["snapId"],
+				"replyText": f"Sample comment {number}",
+				"replyTimestampMs": comment.get("replyTimestampMs", "0"),
+				"threadedReplyCount": comment.get("threadedReplyCount", "0"),
+				"reactCounts": comment.get("reactCounts", []),
+				"replyPosterDisplayName": "Removed",
+				"replyPosterId": {"highBits": "0", "lowBits": "0"},
+			})
+		if kept:
+			stand_ins.append(kept)
+	return json.dumps(stand_ins)
 
 
 def page(page_json):

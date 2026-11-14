@@ -1,5 +1,7 @@
 //! Turns the JSON embedded in a profile page into a [`Report`].
 
+use std::collections::HashMap;
+
 use serde_json::Value;
 
 use crate::error::{Error, Result};
@@ -11,6 +13,8 @@ use crate::util::{iso_from_millis, iso_from_secs, media_id, now_iso};
 pub const PUBLIC_PAGE: i64 = 18;
 /// Snapchat's page carries at most this many highlights, Spotlights or lenses before "show more".
 const FIRST_PAGE: usize = 16;
+/// What Snapchat calls a Spotlight that has no text on it.
+const STOCK_NAME: &str = "Spotlight Snap";
 
 /// Finds the `<script type="application/json">` block Next.js puts in the page and parses it.
 pub fn extract_page_json(html: &str) -> Result<Value> {
@@ -128,6 +132,26 @@ fn sound(details: &Value) -> Option<Sound> {
     (sound.title.is_some() || sound.artist.is_some()).then_some(sound)
 }
 
+/// The top public comments under each Spotlight, by snap ID.
+///
+/// The page carries them as JSON inside a string. Each comment also names who wrote it (a display
+/// name, IDs, an avatar); those fields are not read, so they can't reach a report or an export.
+fn comments_by_snap(root: &Value) -> HashMap<String, Vec<Comment>> {
+    let mut by_snap: HashMap<String, Vec<Comment>> = HashMap::new();
+    let Some(encoded) = text(root, full("comments")) else { return by_snap };
+    let Ok(Value::Array(groups)) = serde_json::from_str::<Value>(&encoded) else { return by_snap };
+    for comment in groups.iter().filter_map(Value::as_array).flatten() {
+        let (Some(snap), Some(words)) = (text(comment, "snapId"), text(comment, "replyText")) else { continue };
+        by_snap.entry(snap).or_default().push(Comment {
+            text: words,
+            posted_at: int(comment, "replyTimestampMs").and_then(iso_from_millis),
+            reactions: sum_known(list(comment, "reactCounts").iter().map(|react| count(react, "reactCount"))),
+            replies: count(comment, "threadedReplyCount"),
+        });
+    }
+    by_snap
+}
+
 fn spotlight(value: &Value, details: Option<&Value>) -> Spotlight {
     let mut item = Spotlight {
         id: text(value, rel("spotlight.id")),
@@ -153,6 +177,23 @@ fn spotlight(value: &Value, details: Option<&Value>) -> Spotlight {
         item.recommends = count(d, rel("details.recommends"));
         item.sound = sound(d);
         item.page_url = link(d, rel("details.page_url"));
+        // Videos without text on them carry a stock name instead.
+        item.on_screen_text = text(d, rel("details.on_screen_text")).or_else(|| item.name.clone().filter(|name| name != STOCK_NAME));
+        item.categories = strings(d, rel("details.categories"));
+        item.search_phrases = strings(d, rel("details.search_phrases"));
+        let mut best_language = 0.0;
+        for signal in list(d, rel("details.signals")) {
+            if item.ai_caption.is_none() {
+                item.ai_caption = text(signal, "signal.textMetadata.description");
+            }
+            for score in list(signal, "signal.detectedLanguage.languageScores") {
+                let confidence = at(score, "score").and_then(Value::as_f64).unwrap_or(0.0);
+                if let Some(code) = text(score, "languageCode").filter(|code| code != "unk" && confidence > best_language) {
+                    best_language = confidence;
+                    item.language = Some(code);
+                }
+            }
+        }
     }
     if item.uploaded_at.is_none() {
         item.uploaded_at = item.snaps.first().and_then(|s| s.uploaded_at.clone());
@@ -212,7 +253,16 @@ fn fill_public(root: &Value, report: &mut Report) {
     report.story = snaps(list(root, full("story")));
     report.highlights = list(root, full("highlights")).iter().map(highlight).collect();
     let details = list(root, full("spotlight_details"));
-    report.spotlights = list(root, full("spotlights")).iter().enumerate().map(|(i, v)| spotlight(v, details.get(i))).collect();
+    let sources = list(root, full("spotlights"));
+    report.spotlights = sources.iter().enumerate().map(|(i, v)| spotlight(v, details.get(i))).collect();
+    let mut comments = comments_by_snap(root);
+    for (item, source) in report.spotlights.iter_mut().zip(sources) {
+        // Comments are keyed by the Spotlight's snap ID, which the page gives in two places.
+        let first_snap = list(source, rel("spotlight.snaps")).first().and_then(|snap| text(snap, rel("snap.snap_id")));
+        if let Some(found) = [item.id.clone(), first_snap].into_iter().flatten().find_map(|id| comments.remove(&id)) {
+            item.top_comments = found;
+        }
+    }
     report.lenses = list(root, full("lenses")).iter().map(lens).collect();
     report.related_accounts = list(root, full("related")).iter().filter_map(related).collect();
     report.more_available = MoreAvailable {

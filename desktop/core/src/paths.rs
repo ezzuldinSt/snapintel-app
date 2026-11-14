@@ -85,6 +85,7 @@ pub const FIELDS: &[Field] = &[
     public("spotlight.thumbnail_url", "spotlightHighlights[].thumbnailUrl.value"),
     public("spotlight.snaps", "spotlightHighlights[].snapList"),
     public("snap.transcript_url", "spotlightHighlights[].snapList[].audioTranscriptionObjectUrl.value"),
+    public("snap.snap_id", "spotlightHighlights[].snapList[].snapId.value"),
     public("spotlight_details", "spotlightStoryMetadata"),
     public("details.name", "spotlightStoryMetadata[].videoMetadata.name"),
     public("details.uploaded", "spotlightStoryMetadata[].videoMetadata.uploadDateMs"),
@@ -103,6 +104,14 @@ pub const FIELDS: &[Field] = &[
     public("details.keywords", "spotlightStoryMetadata[].textMetadataKeywords"),
     public("details.context_cards", "spotlightStoryMetadata[].contextCards"),
     public("details.page_url", "spotlightStoryMetadata[].oneLinkParams.deepLinkUrl"),
+    public("details.on_screen_text", "spotlightStoryMetadata[].videoMetadata.embeddedTextCaption"),
+    public("details.categories", "spotlightStoryMetadata[].s2iTags"),
+    public("details.search_phrases", "spotlightStoryMetadata[].llmKeywords"),
+    // What Snapchat's content analysis says about a video: a one-line description and its language.
+    public("details.signals", "spotlightStoryMetadata[].cuSignals"),
+    // The top public comments under each Spotlight, as JSON inside a string. Only the words, the time
+    // and the counts are read from it; the fields that name who commented are never touched.
+    public("comments", "encodedSpotlightComments"),
     // Lenses
     public("lenses", "lenses"),
     public("lenses.cursor", "lensCursor"),

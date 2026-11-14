@@ -96,15 +96,36 @@ pub struct Sound {
     pub artist: Option<String>,
 }
 
+/// A public comment under a Spotlight. Who wrote it is deliberately left out: SnapIntel reads the
+/// words, the time and the counts, and never the commenter's name, ID or avatar.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct Comment {
+    pub text: String,
+    pub posted_at: Option<String>,
+    pub reactions: Option<u64>,
+    pub replies: Option<u64>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Spotlight {
     pub id: Option<String>,
     pub name: Option<String>,
     /// The caption its author wrote.
     pub description: Option<String>,
+    /// The text shown on the video itself.
+    pub on_screen_text: Option<String>,
     /// A title and summary Snapchat generates for the video.
     pub ai_title: Option<String>,
     pub ai_summary: Option<String>,
+    /// One line from Snapchat's content analysis about what the video shows.
+    pub ai_caption: Option<String>,
+    /// The language Snapchat detects in the video, as a code such as `en`.
+    pub language: Option<String>,
+    /// The categories Snapchat files the video under.
+    pub categories: Vec<String>,
+    /// Phrases Snapchat expects people to search for to find the video.
+    pub search_phrases: Vec<String>,
     pub keywords: Vec<String>,
     pub hashtags: Vec<String>,
     pub thumbnail_url: Option<String>,
@@ -120,6 +141,8 @@ pub struct Spotlight {
     pub sound: Option<Sound>,
     /// The Spotlight's own page on snapchat.com.
     pub page_url: Option<String>,
+    /// The comments Snapchat's page carries for this Spotlight (its top ones, not all of them).
+    pub top_comments: Vec<Comment>,
     pub snaps: Vec<Snap>,
 }
 

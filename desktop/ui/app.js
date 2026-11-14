@@ -108,6 +108,12 @@ function append(element, children) {
   return element;
 }
 
+/** Replaces an element's content. Unlike `replaceChildren`, it skips `null` instead of writing the word. */
+function fill(element, ...children) {
+  element.replaceChildren();
+  return append(element, children);
+}
+
 /** Creates an element. `text` sets its text, `vars` sets CSS variables, `on…` adds listeners. */
 function h(tag, props, ...children) {
   const element = document.createElement(tag);
@@ -151,6 +157,21 @@ const plural = (n, one, many = `${one}s`) => `${fullNumber.format(n)} ${n === 1 
 const parseDate = (iso) => {
   const date = iso ? new Date(iso) : null;
   return date && !Number.isNaN(date.getTime()) ? date : null;
+};
+// "English" for `en`; the code itself when this system has no name for it.
+const languageNames = (() => {
+  try {
+    return new Intl.DisplayNames(undefined, { type: 'language' });
+  } catch {
+    return null;
+  }
+})();
+const languageName = (code) => {
+  try {
+    return languageNames?.of(code) || code;
+  } catch {
+    return code;
+  }
 };
 const day = (iso) => (parseDate(iso) ? dayFormat.format(parseDate(iso)) : null);
 const moment = (iso) => (parseDate(iso) ? momentFormat.format(parseDate(iso)) : null);
@@ -974,12 +995,13 @@ function tabSpotlight() {
   if (!all.length) return empty('video', 'No Spotlight videos', 'This profile hasn\'t posted to Spotlight.');
   const sorted = [...all];
   if (state.sort === 'views') sorted.sort((a, b) => (b.spotlight.views ?? -1) - (a.spotlight.views ?? -1));
+  else if (state.sort === 'comments') sorted.sort((a, b) => (b.spotlight.comments ?? -1) - (a.spotlight.comments ?? -1));
   else sorted.sort((a, b) => String(b.uploaded_at || '').localeCompare(String(a.uploaded_at || '')));
   const option = (id, label) => h('button', { type: 'button', 'aria-pressed': String(state.sort === id), text: label, onclick: () => { state.sort = id; renderTab(); } });
   return h(
     'div',
     null,
-    toolbar('Spotlight', plural(all.length, 'video'), h('div', { class: 'segmented', role: 'group', 'aria-label': 'Sort' }, option('newest', 'Newest'), option('views', 'Most viewed')), downloadAll(all)),
+    toolbar('Spotlight', plural(all.length, 'video'), h('div', { class: 'segmented', role: 'group', 'aria-label': 'Sort' }, option('newest', 'Newest'), option('views', 'Most viewed'), all.some((item) => item.spotlight.comments != null) ? option('comments', 'Most comments') : null), downloadAll(all)),
     state.report.more_available.spotlights ? moreNote('Spotlights') : null,
     h('div', { class: 'grid wide' }, sorted.map((item, index) => spotlightTile(item, sorted, index))),
   );
@@ -1061,16 +1083,31 @@ function tabInsights() {
     monthCard = h('div', { class: 'card' }, h('h3', null, 'Uploads per month'), h('div', { class: 'months' }, months.map((month, index) => h('div', { class: `month${counts[index] ? '' : ' zero'}`, title: `${monthFormat.format(month)} ${month.getFullYear()} · ${plural(counts[index], 'upload')}` }, h('i', { vars: { '--v': counts[index] / most } }), monthFormat.format(month)))));
   }
 
-  const tagCounts = new Map();
-  for (const item of data.spotlights) {
-    for (const hashtag of new Set(item.spotlight.hashtags.map((name) => name.toLowerCase()))) tagCounts.set(hashtag, (tagCounts.get(hashtag) || 0) + 1);
-  }
-  const topTags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
-  const tagCard = topTags.length
-    ? h('div', { class: 'card' }, h('h3', null, 'Hashtags used most'), h('div', { class: 'bars' }, topTags.map(([name, n]) => h('div', { class: 'bar' }, h('span', { class: 'label selectable', dir: 'auto', text: name }), h('span', { class: 'track' }, h('span', { class: 'fill', vars: { '--v': n / topTags[0][1] } })), h('span', { class: 'n', text: String(n) })))))
-    : null;
+  // How many Spotlights each value appears in, most common first, as a card of bars.
+  const countCard = (title, valuesOf, label = (name) => name) => {
+    const counts = new Map();
+    for (const item of data.spotlights) {
+      for (const value of new Set(valuesOf(item.spotlight))) counts.set(value, (counts.get(value) || 0) + 1);
+    }
+    const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+    if (!top.length) return null;
+    return h('div', { class: 'card' }, h('h3', null, title), h('div', { class: 'bars' }, top.map(([name, n]) => h('div', { class: 'bar' }, h('span', { class: 'label selectable', dir: 'auto', text: label(name) }), h('span', { class: 'track' }, h('span', { class: 'fill', vars: { '--v': n / top[0][1] } })), h('span', { class: 'n', text: String(n) })))));
+  };
+  const tagCard = countCard('Hashtags used most', (s) => s.hashtags.map((name) => name.toLowerCase()));
+  const categoryCard = countCard('What the videos are about', (s) => s.categories);
+  const languageCard = countCard('Languages', (s) => (s.language ? [s.language] : []), languageName);
 
-  return h('div', null, tiles, h('div', { class: 'columns' }, h('div', { class: 'stack-col' }, dated.length ? heatCard : null, monthCard), h('div', { class: 'stack-col' }, tagCard, viewed.length ? null : h('div', { class: 'card' }, h('h3', null, 'Views'), h('p', { text: 'Snapchat doesn\'t show view counts for this profile\'s Spotlights.' })))));
+  return h(
+    'div',
+    null,
+    tiles,
+    h(
+      'div',
+      { class: 'columns' },
+      h('div', { class: 'stack-col' }, dated.length ? heatCard : null, monthCard),
+      h('div', { class: 'stack-col' }, tagCard, categoryCard, languageCard, viewed.length ? null : h('div', { class: 'card' }, h('h3', null, 'Views'), h('p', { text: 'Snapchat doesn\'t show view counts for this profile\'s Spotlights.' }))),
+    ),
+  );
 }
 
 function tabBitmoji() {
@@ -1166,7 +1203,8 @@ function renderViewer() {
   } else {
     media = fallback();
   }
-  stage.replaceChildren(
+  fill(
+    stage,
     context.sequence && items.length > 1 && items.length <= 60 ? h('div', { class: 'segments' }, items.map((_, at) => h('i', { class: at <= index ? 'on' : '' }))) : null,
     h('button', { class: 'nav prev', type: 'button', title: 'Previous', 'aria-label': 'Previous', disabled: index === 0, onclick: () => step(-1) }, icon('left', 'lg')),
     media,
@@ -1182,10 +1220,41 @@ function renderViewer() {
     const figure = (value, label, iconName) => (value != null ? h('div', { title: fullNumber.format(value) }, h('b', { text: compact(value) }), h('span', null, icon(iconName, 'sm'), label)) : null);
     const figures = [figure(s.views, 'Views', 'eye'), figure(s.comments, 'Comments', 'message'), figure(s.shares, 'Shares', 'share'), figure(s.boosts, 'Boosts', 'bolt'), figure(s.recommends, 'Recommends', 'heart')].filter(Boolean);
     if (figures.length) body.push(h('div', { class: 'kv' }, figures));
-    body.push(details([['Posted', moment(item.uploaded_at)], ['Length', length(s.duration_seconds)], ['Size', s.width && s.height ? `${s.width} × ${s.height}` : null], ['Sound', s.sound ? [s.sound.title, s.sound.artist].filter(Boolean).join(' · ') : null]]));
-    if (s.hashtags.length) body.push(h('div', { class: 'block' }, h('h4', null, icon('hash', 'sm'), 'Hashtags'), h('div', { class: 'chips selectable' }, s.hashtags.map((name) => h('span', { class: 'chip', dir: 'auto', text: name })))));
-    if (s.ai_title || s.ai_summary) body.push(h('div', { class: 'block ai selectable' }, h('h4', null, icon('sparkles', 'sm'), 'Snapchat\'s AI summary'), s.ai_title ? h('b', { dir: 'auto', text: s.ai_title }) : null, s.ai_summary ? h('p', { dir: 'auto', text: s.ai_summary }) : null));
-    if (s.keywords.length) body.push(h('div', { class: 'block' }, h('h4', null, 'Topics'), h('div', { class: 'chips selectable' }, s.keywords.map((name) => h('span', { class: 'chip', dir: 'auto', text: name })))));
+    const chips = (title, names, iconName) => (names.length ? h('div', { class: 'block' }, h('h4', null, iconName ? icon(iconName, 'sm') : null, title), h('div', { class: 'chips selectable' }, names.map((name) => h('span', { class: 'chip', dir: 'auto', text: name })))) : null);
+    body.push(
+      details([
+        ['Posted', moment(item.uploaded_at)],
+        ['Length', length(s.duration_seconds)],
+        ['Size', s.width && s.height ? `${s.width} × ${s.height}` : null],
+        ['Language', s.language ? languageName(s.language) : null],
+        ['Category', s.categories.join(', ')],
+        ['Sound', s.sound ? [s.sound.title, s.sound.artist].filter(Boolean).join(' · ') : null],
+      ]),
+    );
+    // The title above is often the same words, so the text on the video is shown only when it adds something.
+    if (s.on_screen_text && s.on_screen_text.trim() !== (item.title || '').trim()) body.push(h('div', { class: 'block selectable' }, h('h4', null, icon('text', 'sm'), 'Text on the video'), h('p', { dir: 'auto', text: s.on_screen_text })));
+    body.push(chips('Hashtags', s.hashtags, 'hash'));
+    const shows = s.ai_caption && s.ai_caption !== s.ai_summary ? s.ai_caption : null;
+    if (s.ai_title || s.ai_summary || shows) {
+      body.push(h('div', { class: 'block ai selectable' }, h('h4', null, icon('sparkles', 'sm'), 'Snapchat\'s AI summary'), s.ai_title ? h('b', { dir: 'auto', text: s.ai_title }) : null, s.ai_summary ? h('p', { dir: 'auto', text: s.ai_summary }) : null, shows ? h('p', { class: 'shows', dir: 'auto', text: shows }) : null));
+    }
+    body.push(chips('Topics', s.keywords), chips('People search for', s.search_phrases, 'search'));
+    if (s.top_comments.length) {
+      const count = (value, iconName, label) => (value ? h('span', { title: `${fullNumber.format(value)} ${label}` }, icon(iconName, 'sm'), compact(value)) : null);
+      body.push(
+        h(
+          'div',
+          { class: 'block' },
+          h('h4', null, icon('message', 'sm'), 'Top comments'),
+          h(
+            'div',
+            { class: 'comments selectable' },
+            s.top_comments.map((comment) => h('div', { class: 'comment' }, h('p', { dir: 'auto', text: comment.text }), h('div', { class: 'meta' }, comment.posted_at ? h('span', { text: day(comment.posted_at) }) : null, count(comment.reactions, 'heart', 'reactions'), count(comment.replies, 'message', 'replies')))),
+          ),
+          h('p', { class: 'fine', text: s.comments > s.top_comments.length ? `The top ${s.top_comments.length} of ${fullNumber.format(s.comments)}. SnapIntel doesn't read who wrote them.` : 'SnapIntel doesn\'t read who wrote them.' }),
+        ),
+      );
+    }
     page = s.page_url;
   } else if (item.lens) {
     body.push(details([['Made by', item.lens.creator], ['Updated', day(item.lens.updated_at)], ['Kind', item.lens.official ? 'Official Snapchat lens' : 'Community lens']]));
@@ -1300,7 +1369,7 @@ async function startDownload(files) {
 
 function updateDownloads() {
   updateDownloadButton();
-  if (panel?.kind === 'downloads') panel.element.querySelector('.drawer-body').replaceChildren(...downloadsBody());
+  if (panel?.kind === 'downloads') fill(panel.element.querySelector('.drawer-body'), downloadsBody());
 }
 
 function openDownloads() {

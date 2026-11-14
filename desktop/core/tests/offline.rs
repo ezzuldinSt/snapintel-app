@@ -123,6 +123,55 @@ fn location_is_never_read() {
     assert!(!json.contains("\"lat\"") && !json.contains("\"lng\"") && !json.contains("\"address\""));
 }
 
+#[test]
+fn spotlight_extras_and_comments_without_commenters() {
+    // Give the first Spotlight known signals and two comments, written by a commenter whose
+    // name, ID and avatar must not reach the report.
+    let mut page = page("public_profile.html");
+    let raw = &mut page["props"]["pageProps"];
+    let snap_id = raw["spotlightHighlights"][0]["snapList"][0]["snapId"]["value"].as_str().unwrap().to_owned();
+    let details = &mut raw["spotlightStoryMetadata"][0];
+    details["videoMetadata"]["embeddedTextCaption"] = Value::from("TEXT ON THE VIDEO");
+    details["s2iTags"] = serde_json::json!(["Technology"]);
+    details["llmKeywords"] = serde_json::json!(["smart glasses demo"]);
+    details["cuSignals"] = serde_json::json!([
+        {"signal": {"$case": "textMetadata", "textMetadata": {"description": "A person demonstrates glasses.", "keywords": []}}},
+        {"signal": {"$case": "detectedLanguage", "detectedLanguage": {"languageScores": [{"languageCode": "unk", "score": 0.99}]}}},
+        {"signal": {"$case": "detectedLanguage", "detectedLanguage": {"languageScores": [{"languageCode": "fr", "score": 0.4}, {"languageCode": "en", "score": 0.9}]}}},
+    ]);
+    let comment = |text: &str, reactions: &str, replies: &str| {
+        serde_json::json!({
+            "snapId": snap_id, "replyText": text, "replyTimestampMs": "1787075948348", "threadedReplyCount": replies,
+            "reactCounts": [{"reactTypeId": "1", "reactCount": reactions}, {"reactTypeId": "2", "reactCount": "1"}],
+            "replyPosterDisplayName": "Casey Commenter", "replyPosterId": {"highBits": "424242424242", "lowBits": "17"},
+            "replyPosterBitmojiAvatarId": "avatar-777-secret", "replyPosterProfileLogoUrl": "https://example.com/casey-face.png",
+        })
+    };
+    let groups = serde_json::json!([[comment("Love this", "4", "3"), comment("  ", "0", "0"), comment("Where can I get one?", "0", "0")], [{"snapId": "someone-else", "replyText": "not ours"}]]);
+    raw["encodedSpotlightComments"] = Value::from(groups.to_string());
+
+    let report = parse::parse_report(&page, "spectacles", "https://www.snapchat.com/add/spectacles").unwrap();
+    let first = &report.spotlights[0];
+    assert_eq!(first.on_screen_text.as_deref(), Some("TEXT ON THE VIDEO"));
+    assert_eq!(first.ai_caption.as_deref(), Some("A person demonstrates glasses."));
+    assert_eq!(first.language.as_deref(), Some("en"));
+    assert_eq!((first.categories.as_slice(), first.search_phrases.as_slice()), (&["Technology".to_owned()][..], &["smart glasses demo".to_owned()][..]));
+    assert_eq!(first.top_comments.len(), 2);
+    assert_eq!(first.top_comments[0].text, "Love this");
+    assert_eq!((first.top_comments[0].reactions, first.top_comments[0].replies), (Some(5), Some(3)));
+    assert_eq!(first.top_comments[0].posted_at.as_deref(), Some("2026-08-18T17:59:08Z"));
+    assert!(report.spotlights[1..].iter().all(|s| s.top_comments.is_empty()));
+
+    let json = export::to_json(&report).unwrap();
+    let csv = export::to_csv(&report);
+    for text in [&json, &csv] {
+        for secret in ["Casey", "424242424242", "avatar-777-secret", "casey-face"] {
+            assert!(!text.contains(secret), "{secret} leaked");
+        }
+    }
+    assert!(csv.contains("TEXT ON THE VIDEO") && csv.contains(",en,"));
+}
+
 // --- Export --------------------------------------------------------------------------------
 
 #[test]
