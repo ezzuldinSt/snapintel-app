@@ -19,7 +19,7 @@ A new app for Windows and Linux, written in Rust, that does everything the comma
 - **Compatibility check** that reports when Snapchat has changed the page SnapIntel reads.
 - **Profiles that aren't public:** name, Snapcode, Bitmoji, and the Bitmoji's earlier looks.
 - Light and dark themes, 10 page languages, right-to-left text, and a list of recent lookups you can turn off.
-- Installers: `.exe` for Windows; `.deb`, `.rpm` and `.AppImage` for Linux.
+- Installers: `.exe` for Windows; `.deb`, `.rpm` and `.AppImage` for Linux. The Windows installer has SnapIntel's own look, and the Linux packages carry a full menu entry, a scalable icon and the description and pictures that software centres show.
 
 ### Privacy
 

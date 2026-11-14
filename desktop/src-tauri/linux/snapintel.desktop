@@ -1,0 +1,17 @@
+[Desktop Entry]
+Type=Application
+Name={{name}}
+GenericName=Snapchat Profile Viewer
+{{#if comment}}
+Comment={{comment}}
+{{/if}}
+Exec={{exec}}
+Icon={{icon}}
+Terminal=false
+Categories=Network;Utility;
+Keywords=snapchat;profile;story;highlights;spotlight;lenses;osint;download;
+StartupWMClass={{exec}}
+StartupNotify=true
+{{#if mime_type}}
+MimeType={{mime_type}}
+{{/if}}

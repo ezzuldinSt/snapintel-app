@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 164 314" width="164" height="314">
+  <!-- The picture on the left of the Windows installer's first and last pages (164 x 314).
+       Its right edge ends in #16161a, the colour of those pages, so the two join without a seam. -->
+  <defs>
+    <linearGradient id="ground" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#26262f"/>
+      <stop offset=".5" stop-color="#16161a"/>
+      <stop offset="1" stop-color="#0f0f12"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="34%" cy="20%" r="70%">
+      <stop offset="0" stop-color="#ffdf3d" stop-opacity=".30"/>
+      <stop offset=".45" stop-color="#ffdf3d" stop-opacity=".08"/>
+      <stop offset="1" stop-color="#ffdf3d" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="join" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#16161a" stop-opacity="0"/>
+      <stop offset="1" stop-color="#16161a"/>
+    </linearGradient>
+    <linearGradient id="sink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#16161a" stop-opacity="0"/>
+      <stop offset="1" stop-color="#16161a" stop-opacity=".92"/>
+    </linearGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2a2a33"/>
+      <stop offset="1" stop-color="#0e0e12"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffe45c"/>
+      <stop offset="1" stop-color="#ffc400"/>
+    </linearGradient>
+    <linearGradient id="cardA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b3350"/>
+      <stop offset="1" stop-color="#1a1a20"/>
+    </linearGradient>
+    <linearGradient id="cardB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1f4450"/>
+      <stop offset="1" stop-color="#17171c"/>
+    </linearGradient>
+    <linearGradient id="cardC" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4a4126"/>
+      <stop offset="1" stop-color="#1b1b20"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="164" height="314" fill="url(#ground)"/>
+  <rect width="164" height="314" fill="url(#glow)"/>
+
+  <!-- Three media cards, as in the app's grids; the front one is selected. -->
+  <g transform="rotate(-13 28 244)">
+    <rect x="-4" y="184" width="64" height="124" rx="9" fill="url(#cardA)" stroke="#3d3d49" stroke-width="1"/>
+  </g>
+  <g transform="rotate(12 136 246)">
+    <rect x="104" y="186" width="64" height="124" rx="9" fill="url(#cardB)" stroke="#3d3d49" stroke-width="1"/>
+  </g>
+  <g transform="rotate(-2 82 244)">
+    <rect x="45" y="176" width="74" height="132" rx="10" fill="url(#cardC)" stroke="#ffdf3d" stroke-width="1.6"/>
+    <circle cx="57" cy="188" r="6" fill="#ffdf3d"/>
+    <path d="m54.2 188.1 2 2 3.7-3.9" fill="none" stroke="#16161a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="82" cy="238" r="13" fill="#0e0e12" fill-opacity=".55"/>
+    <path d="M78.5 231.5v13l10.5-6.5z" fill="#ffffff"/>
+    <rect x="53" y="284" width="42" height="4" rx="2" fill="#ffffff" fill-opacity=".8"/>
+    <rect x="53" y="292" width="26" height="3.4" rx="1.7" fill="#ffffff" fill-opacity=".38"/>
+  </g>
+  <rect y="214" width="164" height="100" fill="url(#sink)"/>
+
+  <rect x="118" width="46" height="314" fill="url(#join)"/>
+
+  <!-- The app's mark and name. -->
+  <g transform="translate(51 36) scale(.0605)">
+    <rect x="72" y="72" width="880" height="880" rx="212" fill="url(#tile)" stroke="#3a3a45" stroke-width="10"/>
+    <circle cx="456" cy="456" r="190" fill="none" stroke="url(#glass)" stroke-width="78"/>
+    <path d="M604 604 752 752" fill="none" stroke="url(#glass)" stroke-width="92" stroke-linecap="round"/>
+    <circle cx="456" cy="456" r="66" fill="url(#glass)"/>
+  </g>
+  <text x="82" y="123" text-anchor="middle" font-family="'Segoe UI Variable Display', 'Segoe UI', Inter, system-ui, sans-serif" font-size="19" font-weight="700" letter-spacing="-.2" fill="#ffffff">SnapIntel</text>
+  <rect x="71" y="132" width="22" height="3" rx="1.5" fill="#ffdf3d"/>
+
+</svg>

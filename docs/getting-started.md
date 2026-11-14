@@ -12,6 +12,8 @@ Download the file for your system from the [latest release](https://github.com/e
 2. Windows SmartScreen warns about an unrecognised app, because the installer is not code-signed. Choose **More info**, then **Run anyway**.
 3. Follow the installer. It installs for your user account only, so it never asks for administrator rights.
 
+<img src="media/installer-windows.webp" width="900" alt="The Windows installer: its welcome page, the progress page, and the last page with the options to run SnapIntel and create a desktop shortcut.">
+
 SnapIntel appears in the Start menu and on the desktop. It uses the WebView2 runtime that Windows 10 and 11 already include; if yours is missing, the installer downloads it.
 
 ### Debian, Ubuntu, Linux Mint
@@ -20,7 +22,7 @@ SnapIntel appears in the Start menu and on the desktop. It uses the WebView2 run
 sudo apt install ./SnapIntel_1.0.0_amd64.deb
 ```
 
-This also installs what the app needs: WebKitGTK 4.1, and the GStreamer plugins that play Snapchat's videos.
+This also installs what the app needs: WebKitGTK 4.1, and the GStreamer plugins that play Snapchat's videos. SnapIntel then appears in your application menu, and in GNOME Software or KDE Discover with its description and pictures.
 
 ### Fedora and openSUSE
 

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- What software centres (GNOME Software, KDE Discover and others) show for SnapIntel. -->
+<component type="desktop-application">
+  <id>io.github.ezzuldinst.snapintel</id>
+  <name>SnapIntel</name>
+  <summary>See what a public Snapchat profile shares</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>AGPL-3.0-only</project_license>
+  <developer id="io.github.ezzuldinst">
+    <name>SnapIntel contributors</name>
+  </developer>
+
+  <description>
+    <p>
+      Type a Snapchat username and SnapIntel shows what that public profile shares: its details, story,
+      highlights, Spotlight videos and lenses. Save any of it with a record you can verify later.
+      It needs no Snapchat account and never asks you to sign in.
+    </p>
+    <ul>
+      <li>The whole profile from a username: name, badge, subscribers, bio, Snapcode and related accounts</li>
+      <li>A viewer that shows each Spotlight's views, comments, sound, language, top comments and captions</li>
+      <li>Downloads recorded with their source, upload date and SHA-256, so a folder can be checked later</li>
+      <li>Insights: upload times, uploads per month, hashtags, categories and languages</li>
+      <li>Export a profile as JSON, or as a CSV with one row per item</li>
+    </ul>
+    <p>
+      SnapIntel reads only the profile's public page on snapchat.com. It never reads location data or who
+      wrote a comment, and it does not monitor profiles. It is an independent project, not affiliated
+      with Snap Inc.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">SnapIntel.desktop</launchable>
+  <provides>
+    <binary>snapintel</binary>
+  </provides>
+
+  <url type="homepage">https://github.com/ezzuldinSt/snapintel-app</url>
+  <url type="bugtracker">https://github.com/ezzuldinSt/snapintel-app/issues</url>
+  <url type="help">https://github.com/ezzuldinSt/snapintel-app/blob/main/docs/README.md</url>
+  <url type="vcs-browser">https://github.com/ezzuldinSt/snapintel-app</url>
+
+  <categories>
+    <category>Network</category>
+    <category>Utility</category>
+  </categories>
+  <keywords>
+    <keyword>snapchat</keyword>
+    <keyword>story</keyword>
+    <keyword>spotlight</keyword>
+    <keyword>highlights</keyword>
+    <keyword>osint</keyword>
+    <keyword>download</keyword>
+  </keywords>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#ffe36a</color>
+    <color type="primary" scheme_preference="dark">#4a3f0c</color>
+  </branding>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>A profile with its story, highlights, Spotlight and lenses</caption>
+      <image type="source" width="1280" height="800">https://raw.githubusercontent.com/ezzuldinSt/snapintel-app/main/docs/media/appstream/profile.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Spotlight videos with their views and comments</caption>
+      <image type="source" width="1280" height="800">https://raw.githubusercontent.com/ezzuldinSt/snapintel-app/main/docs/media/appstream/spotlight.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The viewer, with everything Snapchat publishes about a video</caption>
+      <image type="source" width="1280" height="800">https://raw.githubusercontent.com/ezzuldinSt/snapintel-app/main/docs/media/appstream/viewer.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Downloads checked against their record</caption>
+      <image type="source" width="1280" height="800">https://raw.githubusercontent.com/ezzuldinSt/snapintel-app/main/docs/media/appstream/downloads.png</image>
+    </screenshot>
+  </screenshots>
+
+  <requires>
+    <display_length compare="ge">960</display_length>
+  </requires>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="1.0.0" date="2026-11-14">
+      <url type="details">https://github.com/ezzuldinSt/snapintel-app/releases/tag/v1.0.0</url>
+      <description>
+        <p>The first release of SnapIntel as a desktop app.</p>
+      </description>
+    </release>
+  </releases>
+</component>

@@ -88,6 +88,20 @@ cargo tauri build --bundles deb,rpm,appimage          # or pick
 
 They land in `desktop/target/release/bundle`. Windows produces an NSIS installer; Linux produces `.deb`, `.rpm` and `.AppImage`. Build Linux packages on Linux (WSL works), in a folder on the Linux file system.
 
+### How the installers look
+
+Everything that shapes the installers is in `desktop/src-tauri`, named in `tauri.conf.json`:
+
+| File | What it is for |
+|---|---|
+| `installer/hooks.nsh` | The Windows installer's colours, the wording of its first and last pages, and its progress bar. Tauri includes it before setting up the pages. |
+| `installer/sidebar.svg`, `header.svg` | The sources of the Windows installer's two pictures. `installer/render.ps1` draws `sidebar.bmp` and `header.bmp` from them (it needs Microsoft Edge and ffmpeg); run it after editing an SVG. |
+| `icons/` | The app's icon in every size. The Windows installer and uninstaller use `icon.ico`. |
+| `linux/snapintel.desktop` | The entry in Linux application menus: name, description, categories, search keywords. |
+| `linux/io.github.ezzuldinst.snapintel.metainfo.xml` | What Linux software centres show: description, pictures, links, release notes. Add each new version to its `<releases>`, and check it with `appstreamcli validate`. |
+
+The Linux packages also install the icon as an SVG, so it stays sharp at any size.
+
 ## Continuous integration
 
 | Workflow | What it does |
@@ -98,7 +112,7 @@ They land in `desktop/target/release/bundle`. Windows produces an NSIS installer
 
 ## Making a release
 
-1. Set the version in `desktop/Cargo.toml`, `desktop/src-tauri/tauri.conf.json` and `cli/snapintel/__init__.py`, and add it to `CHANGELOG.md`.
+1. Set the version in `desktop/Cargo.toml`, `desktop/src-tauri/tauri.conf.json` and `cli/snapintel/__init__.py`, and add it to `CHANGELOG.md` and to the `<releases>` in the Linux metainfo file.
 2. Run the tests, then build the installers on Windows and Linux.
 3. Write `SHA256SUMS.txt` for the installers.
 4. Tag the commit (`v1.0.0`) and publish a GitHub release with the installers and the checksums attached.
