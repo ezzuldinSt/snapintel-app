@@ -206,6 +206,11 @@ body[data-view="home"] .topbar .search { visibility: hidden; }
 [hidden] { display: none !important; }
 .avatar.lg { width: 112px; height: 112px; font-size: 38px; border: 4px solid var(--surface); box-shadow: var(--shadow-md); }
 .avatar.md { width: 44px; height: 44px; font-size: 16px; }
+/* The profile picture with its save button on the corner. */
+.portrait { position: relative; flex: none; }
+.portrait-save { position: absolute; right: 0; bottom: 2px; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--surface); background: var(--accent); color: var(--accent-ink); box-shadow: var(--shadow-sm); cursor: pointer; transition: background .15s, transform .12s; }
+.portrait-save:hover { background: var(--accent-hover); transform: scale(1.07); }
+.portrait-save:active { transform: scale(.96); }
 
 /* Profile header */
 .profile-head { position: relative; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); overflow: hidden; box-shadow: var(--shadow-sm); }

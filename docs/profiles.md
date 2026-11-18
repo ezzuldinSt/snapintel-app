@@ -11,6 +11,8 @@ A profile opens with a header and a row of tabs. The header holds the name, the 
 
 A number followed by `+`, such as **16+**, means Snapchat's page lists the newest 16 and the profile has more. See [what Snapchat doesn't publish](privacy.md#what-snapchat-doesnt-publish).
 
+The round button on the corner of the profile picture saves that picture at its original size. On a profile that isn't public it saves the Bitmoji.
+
 The buttons in the header:
 
 - **Download all** saves everything the profile's page lists. See [Downloading and verifying](downloads.md).

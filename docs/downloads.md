@@ -15,6 +15,7 @@ SnapIntel saves media exactly as Snapchat serves it and keeps a record beside th
 | A few items | Tick the circle in the corner of each, then **Download** in the bar at the bottom |
 | All the snaps of one highlight | Tick the highlight's card |
 | The item you are viewing | **Download** in the viewer |
+| The profile picture | The round button on the picture's corner |
 
 **Clear** in the selection bar, or <kbd>Esc</kbd>, drops the selection. Ticks stay as you move between tabs, so you can gather items from several.
 
@@ -34,6 +35,7 @@ Downloads/
       highlight_<id>.jpg
       spotlight_<id>.mp4
       lens_<id>.mp4
+      profile_<id>.jpg
       snapintel-manifest.json
 ```
 

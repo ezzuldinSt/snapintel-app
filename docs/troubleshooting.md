@@ -8,7 +8,7 @@
 The installer is not code-signed, so SmartScreen doesn't recognise it. Choose **More info**, then **Run anyway**. You can confirm the file first by comparing its SHA-256 with `SHA256SUMS.txt` in the release.
 
 **The AppImage does nothing when I double-click it.**
-Make it executable: `chmod +x SnapIntel_1.1.1_amd64.AppImage`. On a system without FUSE, run it with `--appimage-extract-and-run`.
+Make it executable: `chmod +x SnapIntel_1.2.0_amd64.AppImage`. On a system without FUSE, run it with `--appimage-extract-and-run`.
 
 **The window is blank or flickers on Linux.**
 This is a known problem between WebKitGTK and some graphics drivers. Start the app with:

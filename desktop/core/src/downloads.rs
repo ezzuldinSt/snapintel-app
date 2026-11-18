@@ -454,5 +454,13 @@ mod tests {
         assert_eq!(item("highlight", "mp4").file_name().unwrap(), "highlight_CBVqD5SrTfygLFpfCgKGH.mp4");
         assert!(item("../../evil", "mp4").file_name().is_err());
         assert!(item("story", "exe").file_name().is_err());
+        // A profile picture is named after the picture, not after the resizer's long address.
+        let picture = DownloadItem {
+            url: "https://cf-st.sc-cdn.net/aps/bolt/aHR0cHM6Ly9jZi1zdC5zYy1jZG4ubmV0L2QvQ1Yyb2FycDloeXpwbVFaOHlZeWFFP2JvPUVna3lBUVJJQWxBWllBRSUzRCZ1Yz0yNQ._FMpng".into(),
+            ext: "png".into(),
+            category: "profile".into(),
+            uploaded_at: None,
+        };
+        assert_eq!(picture.file_name().unwrap(), "profile_CV2oarp9hyzpmQZ8yYyaE.png");
     }
 }

@@ -8,7 +8,7 @@ Download the file for your system from the [latest release](https://github.com/e
 
 ### Windows 10 and 11
 
-1. Run `SnapIntel_1.1.1_x64-setup.exe`.
+1. Run `SnapIntel_1.2.0_x64-setup.exe`.
 2. Windows SmartScreen warns about an unrecognised app, because the installer is not code-signed. Choose **More info**, then **Run anyway**.
 3. Follow the installer. It installs for your user account only, so it never asks for administrator rights.
 
@@ -19,7 +19,7 @@ SnapIntel appears in the Start menu and on the desktop. It uses the WebView2 run
 ### Debian, Ubuntu, Linux Mint
 
 ```bash
-sudo apt install ./SnapIntel_1.1.1_amd64.deb
+sudo apt install ./SnapIntel_1.2.0_amd64.deb
 ```
 
 This also installs what the app needs: WebKitGTK 4.1, and the GStreamer plugins that play Snapchat's videos. SnapIntel then appears in your application menu, and in GNOME Software or KDE Discover with its description and pictures.
@@ -27,7 +27,7 @@ This also installs what the app needs: WebKitGTK 4.1, and the GStreamer plugins 
 ### Fedora and openSUSE
 
 ```bash
-sudo dnf install ./SnapIntel-1.1.1-1.x86_64.rpm
+sudo dnf install ./SnapIntel-1.2.0-1.x86_64.rpm
 ```
 
 If videos don't play, install the GStreamer plugins for H.264 and AAC (on Fedora they come from RPM Fusion: `gstreamer1-libav` and `gstreamer1-plugins-good`).
@@ -35,8 +35,8 @@ If videos don't play, install the GStreamer plugins for H.264 and AAC (on Fedora
 ### Any other Linux: the AppImage
 
 ```bash
-chmod +x SnapIntel_1.1.1_amd64.AppImage
-./SnapIntel_1.1.1_amd64.AppImage
+chmod +x SnapIntel_1.2.0_amd64.AppImage
+./SnapIntel_1.2.0_amd64.AppImage
 ```
 
 The AppImage carries its own copy of WebKitGTK, so the app starts on a system that has none. Videos still use the GStreamer plugins installed on your system.
@@ -46,11 +46,11 @@ The AppImage carries its own copy of WebKitGTK, so the app starts on a system th
 Every release includes `SHA256SUMS.txt`. Compare it with the hash of the file you downloaded:
 
 ```powershell
-Get-FileHash .\SnapIntel_1.1.1_x64-setup.exe -Algorithm SHA256
+Get-FileHash .\SnapIntel_1.2.0_x64-setup.exe -Algorithm SHA256
 ```
 
 ```bash
-sha256sum SnapIntel_1.1.1_amd64.deb
+sha256sum SnapIntel_1.2.0_amd64.deb
 ```
 
 ## 2. Look up a profile

@@ -2,6 +2,13 @@
 
 All notable changes to SnapIntel. Versions follow [semantic versioning](https://semver.org).
 
+## 1.2.0 (2026-11-19)
+
+### Added
+
+- **Download the profile picture.** A round button on the corner of the profile picture saves it at its original size (up to 1080 × 1080) into the profile's folder, recorded in the manifest like every other download. For a profile that isn't public, the button saves its Bitmoji.
+- The saved file is named after the picture itself, `profile_<id>.jpg` or `.png`, so a profile that changes its picture gets a new file instead of overwriting the old one.
+
 ## 1.1.1 (2026-11-19)
 
 ### Fixed

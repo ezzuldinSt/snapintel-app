@@ -142,6 +142,26 @@ function avatar(label, src, size = '') {
   return h('span', { class: `avatar ${size}`.trim() }, (label || '?').trim().charAt(0), image(src));
 }
 
+/**
+ * A profile's picture with a button on its corner that saves it: the profile picture at its
+ * original size, or the Bitmoji of a profile that isn't public.
+ */
+function portrait(name, profile) {
+  const picture = safe(profile.profile_picture_url);
+  const bitmoji = picture ? null : safe(profile.avatar_url);
+  let item = null;
+  // The picture's address ends in its format, such as "._FMpng".
+  if (picture) item = { url: picture, ext: /_FMpng$/i.test(picture.split('?')[0]) ? 'png' : 'jpg', category: 'profile', uploaded_at: null };
+  else if (bitmoji) item = { url: bitmoji, ext: 'webp', category: 'bitmoji', uploaded_at: null };
+  const label = picture ? 'Download the profile picture' : 'Download the Bitmoji';
+  return h(
+    'div',
+    { class: 'portrait' },
+    avatar(name, picture || bitmoji, 'lg'),
+    item ? h('button', { class: 'portrait-save', type: 'button', title: label, 'aria-label': label, onclick: () => startDownload([item]) }, icon('download', 'sm')) : null,
+  );
+}
+
 function button(label, { icon: iconName, kind = '', onclick, title, disabled, type = 'button' } = {}) {
   return h('button', { class: `btn ${kind}`.trim(), type, onclick, title, 'aria-label': label ? null : title, disabled }, iconName ? icon(iconName) : null, label);
 }
@@ -735,7 +755,7 @@ function renderProfile() {
       h(
         'div',
         { class: 'head-body' },
-        avatar(name, profile.profile_picture_url || profile.avatar_url, 'lg'),
+        portrait(name, profile),
         h(
           'div',
           { class: 'identity' },

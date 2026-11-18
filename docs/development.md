@@ -116,7 +116,7 @@ The Linux packages also install the icon as an SVG, so it stays sharp at any siz
 1. Set the version in `desktop/Cargo.toml`, `desktop/src-tauri/tauri.conf.json` and `cli/snapintel/__init__.py`, and add it to `CHANGELOG.md` and to the `<releases>` in the Linux metainfo file.
 2. Run the tests, then build the installers on Windows and Linux.
 3. Write `SHA256SUMS.txt` for the installers.
-4. Tag the commit (`v1.1.1`) and publish a GitHub release with the installers and the checksums attached.
+4. Tag the commit (`v1.2.0`) and publish a GitHub release with the installers and the checksums attached.
 
 ## Contributing
 
