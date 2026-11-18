@@ -13,6 +13,7 @@ pub mod downloads;
 pub mod error;
 pub mod export;
 pub mod fetch;
+pub mod media;
 pub mod model;
 pub mod parse;
 pub mod paths;

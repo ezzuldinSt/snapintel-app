@@ -231,6 +231,17 @@ fn sum_known(values: impl Iterator<Item = Option<u64>>) -> Option<u64> {
     values.flatten().fold(None, |total, n| Some(total.unwrap_or(0) + n))
 }
 
+/// The page links a profile picture shrunk to 90 pixels: its address ends in a size and a format,
+/// such as `._RS0,90_FMjpeg`. Without the size, the same address gives the picture as it was uploaded.
+fn full_size(url: &str) -> String {
+    if let (true, Some(size)) = (url.contains("/aps/bolt/"), url.rfind("._RS")) {
+        if let Some(format) = url[size..].find("_FM") {
+            return format!("{}.{}", &url[..size], &url[size + format..]);
+        }
+    }
+    url.to_owned()
+}
+
 fn fill_public(root: &Value, report: &mut Report) {
     let profile = &mut report.profile;
     profile.username = text(root, full("username"));
@@ -245,7 +256,7 @@ fn fill_public(root: &Value, report: &mut Report) {
     profile.subcategory = text(root, full("subcategory")).and_then(|id| category_name(&id));
     profile.created_at = int(root, full("created")).filter(|n| *n > 0).and_then(iso_from_millis);
     profile.updated_at = int(root, full("updated")).filter(|n| *n > 0).and_then(iso_from_millis);
-    profile.profile_picture_url = link(root, full("profile_picture_url"));
+    profile.profile_picture_url = link(root, full("profile_picture_url")).map(|url| full_size(&url));
     profile.hero_image_url = link(root, full("hero_image_url"));
     profile.snapcode_url = link(root, full("snapcode_url"));
     profile.links = strings(root, full("links")).into_iter().filter(|s| s.starts_with("https://") || s.starts_with("http://")).collect();

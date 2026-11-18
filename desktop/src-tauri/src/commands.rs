@@ -143,7 +143,7 @@ pub async fn download(app: AppHandle, state: State<'_, AppState>, username: Stri
     let result = async {
         let settings = current(&state);
         let directory = account_dir(&app, &settings, &username)?;
-        let manager = DownloadManager::open(&directory, &normalize_username(&username)?)?;
+        let manager = DownloadManager::open(&directory, &normalize_username(&username)?)?.prefer(settings.video_version);
         state.cancel.store(false, Ordering::SeqCst);
         let progress = app.clone();
         let summary = manager

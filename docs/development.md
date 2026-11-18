@@ -34,6 +34,7 @@ desktop/
     parse.rs       turns the page into a typed report (model.rs)
     fetch.rs       requests to snapchat.com
     downloads.rs   downloads and the manifest
+    media.rs       which of Snapchat's versions of a video to download
     export.rs      JSON and CSV
     selfcheck.rs   the compatibility check
     transcript.rs  captions; bitmoji.rs earlier Bitmoji versions
@@ -115,7 +116,7 @@ The Linux packages also install the icon as an SVG, so it stays sharp at any siz
 1. Set the version in `desktop/Cargo.toml`, `desktop/src-tauri/tauri.conf.json` and `cli/snapintel/__init__.py`, and add it to `CHANGELOG.md` and to the `<releases>` in the Linux metainfo file.
 2. Run the tests, then build the installers on Windows and Linux.
 3. Write `SHA256SUMS.txt` for the installers.
-4. Tag the commit (`v1.0.0`) and publish a GitHub release with the installers and the checksums attached.
+4. Tag the commit (`v1.1.0`) and publish a GitHub release with the installers and the checksums attached.
 
 ## Contributing
 

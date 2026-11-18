@@ -9,6 +9,7 @@ use std::time::{Duration, SystemTime};
 
 use serde_json::Value;
 use snapintel_core::downloads::{self, DownloadItem, DownloadManager, Outcome, MANIFEST};
+use snapintel_core::media::VideoVersion;
 use snapintel_core::model::MediaType;
 use snapintel_core::selfcheck::{self, Status};
 use snapintel_core::{export, parse, Client, ClientOptions, Error, Report};
@@ -43,6 +44,9 @@ fn public_profile() {
 
     assert!(report.profile.public);
     assert_eq!(report.profile.username.as_deref(), info["username"].as_str());
+    // The page links the profile picture shrunk to 90 pixels; the report has it at its original size.
+    assert!(info["profilePictureUrl"].as_str().unwrap().ends_with("._RS0,90_FMpng"));
+    assert!(report.profile.profile_picture_url.as_deref().unwrap().ends_with("._FMpng"));
     assert_eq!(report.profile.display_name.as_deref(), info["title"].as_str());
     assert_eq!(report.profile.badge.as_deref(), Some("creator"));
     assert_eq!(report.profile.subscriber_count, info["subscriberCount"].as_str().and_then(|s| s.parse().ok()));
@@ -376,6 +380,90 @@ async fn a_cancelled_download_saves_nothing_new() {
     assert!(server.requests.lock().unwrap().is_empty());
     assert!(!cancelled.load(Ordering::Relaxed) || fs::read_dir(folder.path()).unwrap().count() == 0);
     assert!(!downloads::verify(folder.path()).unwrap().has_manifest);
+}
+
+/// A video as the page links it: `/d/<id>.<version>.IRZXSOY` with the page's parameters.
+fn video(server: &Server, id: &str, version: u32, category: &str) -> DownloadItem {
+    DownloadItem { url: format!("{}/d/{id}.{version}.IRZXSOY?mo=abc&uc=46", server.base), ext: "mp4".into(), category: category.into(), uploaded_at: None }
+}
+
+#[tokio::test]
+async fn videos_are_saved_without_the_watermark() {
+    // The server has two versions of one Spotlight (27 carries the watermark), only the watermarked
+    // one of another, and one clean highlight video. A photo sits beside them.
+    let server = serve(HashMap::from([
+        ("/d/spotlight1.27.IRZXSOY".to_owned(), (200, b"spotlight one, with watermark".to_vec())),
+        ("/d/spotlight1.1034.IRZXSOY".to_owned(), (200, b"spotlight one, clean".to_vec())),
+        ("/d/spotlight2.27.IRZXSOY".to_owned(), (200, b"spotlight two, with watermark".to_vec())),
+        ("/d/highlight1.1322.IRZXSOY".to_owned(), (200, b"highlight, clean".to_vec())),
+        ("/d/highlight1.27.IRZXSOY".to_owned(), (200, b"highlight, larger, with watermark".to_vec())),
+        ("/d/photo0001.400.IRZXSOY".to_owned(), (200, b"photo".to_vec())),
+    ]))
+    .await;
+    let client = client(&server);
+    let never = AtomicBool::new(false);
+    let photo =
+        DownloadItem { url: format!("{}/d/photo0001.400.IRZXSOY?mo=abc", server.base), ext: "jpg".into(), category: "highlight".into(), uploaded_at: None };
+    let items = vec![
+        video(&server, "spotlight1", 27, "spotlight"),
+        video(&server, "spotlight2", 27, "spotlight"),
+        video(&server, "highlight1", 1322, "highlight"),
+        photo,
+    ];
+    let source = |folder: &std::path::Path, file: &str| {
+        let manifest: Value = serde_json::from_str(&fs::read_to_string(folder.join(MANIFEST)).unwrap()).unwrap();
+        manifest["files"].as_array().unwrap().iter().find(|f| f["file"] == file).unwrap()["source_url"].as_str().unwrap().to_owned()
+    };
+
+    // Asked for nothing in particular, the manager takes the versions without the watermark.
+    let folder = tempfile::tempdir().unwrap();
+    let summary = DownloadManager::open(folder.path(), "tester").unwrap().run(&client, items.clone(), 1, &never, |_| {}).await.unwrap();
+    assert_eq!((summary.downloaded, summary.failed, summary.replaced), (4, 0, 0));
+    assert_eq!(fs::read(folder.path().join("spotlight_spotlight1.mp4")).unwrap(), b"spotlight one, clean");
+    assert!(source(folder.path(), "spotlight_spotlight1.mp4").ends_with("/d/spotlight1.1034.IRZXSOY"));
+    assert_eq!(fs::read(folder.path().join("highlight_highlight1.mp4")).unwrap(), b"highlight, clean");
+    // A video the server only has with the watermark is still saved, and pointed out.
+    assert_eq!(fs::read(folder.path().join("spotlight_spotlight2.mp4")).unwrap(), b"spotlight two, with watermark");
+    assert_eq!(summary.watermarked, ["spotlight_spotlight2.mp4"]);
+    // Videos already linked without the watermark, and photos, cost no extra request.
+    let requests = server.requests.lock().unwrap().clone();
+    assert_eq!(requests.iter().filter(|path| path.contains("highlight1")).count(), 1);
+    assert_eq!(requests.iter().filter(|path| path.contains("photo0001")).count(), 1);
+    assert!(!requests.iter().any(|path| path.ends_with("/d/spotlight1.27.IRZXSOY")), "the watermarked version was fetched: {requests:?}");
+
+    // A second run fetches nothing: every file is the version asked for, or the only one there is.
+    let summary = DownloadManager::open(folder.path(), "tester").unwrap().run(&client, items.clone(), 2, &never, |_| {}).await.unwrap();
+    assert_eq!((summary.downloaded, summary.replaced, summary.skipped), (0, 0, 4));
+    assert_eq!(summary.watermarked, ["spotlight_spotlight2.mp4"]);
+
+    // Asked for the largest versions, it takes the watermarked ones where they exist...
+    let sharp = tempfile::tempdir().unwrap();
+    let summary =
+        DownloadManager::open(sharp.path(), "tester").unwrap().prefer(VideoVersion::Sharpest).run(&client, items.clone(), 2, &never, |_| {}).await.unwrap();
+    assert_eq!(summary.downloaded, 4);
+    assert!(summary.watermarked.is_empty());
+    assert_eq!(fs::read(sharp.path().join("spotlight_spotlight1.mp4")).unwrap(), b"spotlight one, with watermark");
+    assert_eq!(fs::read(sharp.path().join("highlight_highlight1.mp4")).unwrap(), b"highlight, larger, with watermark");
+    assert!(source(sharp.path(), "highlight_highlight1.mp4").ends_with("/d/highlight1.27.IRZXSOY"));
+
+    // ...and a folder saved that way is brought to the clean versions by a later run: unchanged files
+    // are replaced, a file that was edited is left alone with the clean copy beside it.
+    fs::write(sharp.path().join("highlight_highlight1.mp4"), b"edited afterwards").unwrap();
+    let outcomes = Mutex::new(Vec::new());
+    let summary = DownloadManager::open(sharp.path(), "tester")
+        .unwrap()
+        .run(&client, items.clone(), 1, &never, |p| outcomes.lock().unwrap().push((p.file, p.outcome)))
+        .await
+        .unwrap();
+    assert_eq!((summary.replaced, summary.saved_beside, summary.skipped), (1, 1, 2));
+    assert_eq!(fs::read(sharp.path().join("spotlight_spotlight1.mp4")).unwrap(), b"spotlight one, clean");
+    assert!(outcomes.lock().unwrap().contains(&("spotlight_spotlight1.mp4".to_owned(), Outcome::Replaced)));
+    assert_eq!(fs::read(sharp.path().join("highlight_highlight1.mp4")).unwrap(), b"edited afterwards");
+    assert_eq!(summary.altered_on_disk, ["highlight_highlight1.mp4"]);
+    assert_eq!(summary.watermarked, ["spotlight_spotlight2.mp4"]);
+    let check = downloads::verify(sharp.path()).unwrap();
+    assert_eq!(check.altered, ["highlight_highlight1.mp4"]);
+    assert!(source(sharp.path(), "spotlight_spotlight1.mp4").ends_with("/d/spotlight1.1034.IRZXSOY"));
 }
 
 #[tokio::test]

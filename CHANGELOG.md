@@ -2,6 +2,20 @@
 
 All notable changes to SnapIntel. Versions follow [semantic versioning](https://semver.org).
 
+## 1.1.0 (2026-11-18)
+
+### Downloads
+
+- **Videos are saved without Snapchat's watermark.** Snapchat keeps two versions of most videos: 480 × 852 with nothing added, and 540 × 960 with its logo and the username burned into the picture. Its page links the watermarked one for Spotlight; SnapIntel now downloads the clean one for every video.
+- **A setting chooses the other version.** Settings → Downloads → Videos switches to the larger, watermarked version for videos that have one.
+- **Earlier downloads follow the setting.** Downloading again replaces an unchanged file saved as the other version. A file you edited is never replaced.
+- A video that exists only with the watermark is still saved, and the Downloads panel names it.
+- The profile picture is read at its original size (up to 800 × 800) instead of the 90-pixel copy the page links.
+
+These are the largest versions Snapchat publishes: photos up to 1080 × 1920, videos as above. Nothing was upscaled.
+
+The command-line tool is unchanged apart from its version number.
+
 ## 1.0.0 (2026-11-14)
 
 The first release of the desktop app, and of this repository as a fork of [Kr0wZ/SnapIntel](https://github.com/Kr0wZ/SnapIntel).

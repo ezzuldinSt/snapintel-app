@@ -45,6 +45,7 @@ Some things can't be shown, because Snapchat does not give them to visitors who 
 - **All of a video's comments.** The page includes the top few.
 - **Some figures.** Snapchat hides view, share or subscriber counts on some profiles; SnapIntel shows a dash or leaves the figure out.
 - **Stories older than 24 hours**, unless the profile saved them to a highlight.
+- **High-resolution video.** Videos are published at 480 × 852, or 540 × 960 with Snapchat's watermark. See [which version is saved](downloads.md#which-version-of-a-video-is-saved).
 
 ## Using it responsibly
 

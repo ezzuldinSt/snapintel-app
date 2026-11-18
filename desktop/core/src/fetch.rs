@@ -107,6 +107,23 @@ impl Client {
         }
     }
 
+    /// The size in bytes of the video at `url`, or `None` when the server has no video there.
+    /// It asks for a single byte, so nothing is downloaded. A size the server doesn't state is 0.
+    pub async fn video_size(&self, url: &str) -> Result<Option<u64>> {
+        self.check(url)?;
+        let response = self.http.get(url).header(reqwest::header::RANGE, "bytes=0-0").send().await.map_err(request_error)?;
+        if !response.status().is_success() {
+            return Ok(None);
+        }
+        let header = |name: reqwest::header::HeaderName| response.headers().get(name).and_then(|value| value.to_str().ok()).map(str::to_owned);
+        if header(reqwest::header::CONTENT_TYPE).is_some_and(|kind| !kind.starts_with("video/")) {
+            return Ok(None);
+        }
+        // "bytes 0-0/705881" when the server honours the range, otherwise the length of the whole reply.
+        let total = header(reqwest::header::CONTENT_RANGE).and_then(|range| range.rsplit('/').next().and_then(|total| total.parse().ok()));
+        Ok(Some(total.or_else(|| header(reqwest::header::CONTENT_LENGTH).and_then(|length| length.parse().ok())).unwrap_or(0)))
+    }
+
     pub async fn text(&self, url: &str) -> Result<String> {
         self.get(url).await?.text().await.map_err(request_error)
     }

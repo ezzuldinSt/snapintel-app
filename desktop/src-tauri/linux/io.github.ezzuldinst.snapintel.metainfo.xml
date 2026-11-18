@@ -87,6 +87,11 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="1.1.0" date="2026-11-18">
+      <description>
+        <p>Videos are saved without Snapchat's watermark, including Spotlight videos. A setting chooses the larger, watermarked version instead.</p>
+      </description>
+    </release>
     <release version="1.0.0" date="2026-11-14">
       <url type="details">https://github.com/ezzuldinSt/snapintel-app/releases/tag/v1.0.0</url>
       <description>

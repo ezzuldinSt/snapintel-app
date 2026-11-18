@@ -3626,7 +3626,7 @@ checksum = "149309498a5f7334b12ddae0cad8aba81ce785fe91755068867e017cf98fee46"
 
 [[package]]
 name = "snapintel-core"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "chrono",
  "futures-util",
@@ -3643,7 +3643,7 @@ dependencies = [
 
 [[package]]
 name = "snapintel-desktop"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "serde",
  "serde_json",

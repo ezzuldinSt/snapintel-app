@@ -42,6 +42,25 @@ Downloads/
 - A file's "modified" date is set to when it was **uploaded to Snapchat**, where Snapchat gives that date. Sort the folder by date and it reads as a timeline.
 - **Open folder** in the Downloads panel shows the folder in your file manager.
 
+## Which version of a video is saved
+
+Snapchat keeps two versions of most videos:
+
+| Version | Size | Picture |
+|---|---|---|
+| **No watermark** | 480 × 852 | As it was posted. |
+| **Largest** | 540 × 960, at a higher bitrate | With Snapchat's logo and the profile's username burned into the top left corner. |
+
+SnapIntel saves the version **without the watermark**, for every kind of video. Snapchat's own page plays the watermarked one for Spotlight, so a Spotlight you download is slightly smaller than the one you watch in the viewer, and clean.
+
+To save the larger version instead, choose **Largest** under **Videos** in [Settings](settings.md). Either way:
+
+- A few videos exist in one version only. They are saved as they are, and if that means a watermark you asked not to have, the Downloads panel names them.
+- When you download again after changing the setting, files saved as the other version are **replaced**, provided they are still exactly what was downloaded. A file you changed is left alone, as always.
+- Photos have a single full-size version (up to 1080 × 1920 for story photos, 720 × 1280 for highlight photos), and lens previews are saved as Snapchat provides them.
+
+These are the largest versions Snapchat publishes to visitors who aren't signed in. SnapIntel doesn't enlarge anything.
+
 ## The record: `snapintel-manifest.json`
 
 For every file the manifest stores:

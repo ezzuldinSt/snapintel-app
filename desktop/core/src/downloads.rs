@@ -8,6 +8,10 @@
 //! Files are named `<kind>_<media id>.<ext>`, so a later run recognises them: a file whose hash still
 //! matches the manifest is skipped without touching the network. A file that no longer matches is
 //! never overwritten; the fresh copy is saved beside it as `<name>-<first 8 hex of its hash>.<ext>`.
+//!
+//! Snapchat keeps two versions of most videos, one of them with its watermark (see `media`). The
+//! manager downloads the version it was told to prefer. An unchanged file saved earlier as the other
+//! version is replaced by the preferred one, since nothing but the choice of version is lost.
 
 use std::collections::{BTreeMap, HashSet};
 use std::fs;
@@ -24,6 +28,7 @@ use tokio::io::AsyncWriteExt;
 
 use crate::error::{Error, Result};
 use crate::fetch::Client;
+use crate::media::{self, VideoVersion};
 use crate::util::{hex, media_id, now_iso, secs_from_iso};
 
 pub const MANIFEST: &str = "snapintel-manifest.json";
@@ -83,6 +88,8 @@ pub enum Outcome {
     AlreadyPresent,
     /// The file on disk had been changed, so the download was saved beside it.
     SavedBeside,
+    /// An unchanged video saved earlier was the other version; the preferred one took its place.
+    Replaced,
     Failed,
     Cancelled,
 }
@@ -106,12 +113,17 @@ pub struct Summary {
     pub skipped: u32,
     pub already_present: u32,
     pub saved_beside: u32,
+    /// Videos saved earlier as the other version and now replaced by the preferred one.
+    pub replaced: u32,
     pub failed: u32,
     pub cancelled: bool,
     /// Bytes fetched in this run.
     pub bytes: u64,
     /// Files that had been changed since they were downloaded. They are left as they are.
     pub altered_on_disk: Vec<String>,
+    /// Videos that carry Snapchat's watermark although the version without it was asked for,
+    /// because the server has no other version of them.
+    pub watermarked: Vec<String>,
     pub errors: Vec<String>,
 }
 
@@ -124,6 +136,7 @@ struct State {
 pub struct DownloadManager {
     directory: PathBuf,
     username: String,
+    video: VideoVersion,
     state: Mutex<State>,
 }
 
@@ -162,7 +175,13 @@ impl DownloadManager {
         let directory = directory.into();
         fs::create_dir_all(&directory)?;
         let state = State { entries: load_manifest(&directory), ..Default::default() };
-        Ok(Self { directory, username: username.to_owned(), state: Mutex::new(state) })
+        Ok(Self { directory, username: username.to_owned(), video: VideoVersion::default(), state: Mutex::new(state) })
+    }
+
+    /// Which version of a video to download when Snapchat has two. Without this, the one with no watermark.
+    pub fn prefer(mut self, video: VideoVersion) -> Self {
+        self.video = video;
+        self
     }
 
     pub fn directory(&self) -> &Path {
@@ -222,17 +241,36 @@ impl DownloadManager {
 
     async fn fetch_one(&self, client: &Client, name: &str, item: &DownloadItem, cancel: &AtomicBool) -> Result<(String, Outcome, u64)> {
         let path = self.directory.join(name);
-        let recorded = self.lock().entries.get(name).map(|entry| entry.sha256.clone());
-        if let Some(recorded) = recorded {
+        let is_video = item.ext == "mp4";
+        let recorded = self.lock().entries.get(name).map(|entry| (entry.sha256.clone(), entry.source_url.clone()));
+        // Set when an unchanged file is on disk that was saved as the other version of the video.
+        let mut other_version = None;
+        if let Some((recorded, source)) = recorded {
             if path.exists() {
                 let existing = path.clone();
                 let on_disk = tokio::task::spawn_blocking(move || sha256_file(&existing)).await.map_err(|e| Error::Other(e.to_string()))??;
                 if on_disk == recorded {
-                    self.lock().summary.skipped += 1;
-                    return Ok((name.to_owned(), Outcome::Skipped, 0));
+                    if !is_video || media::satisfies(&source, self.video) {
+                        self.lock().summary.skipped += 1;
+                        return Ok((name.to_owned(), Outcome::Skipped, 0));
+                    }
+                    other_version = Some(source);
                 }
             }
         }
+
+        let choice = if is_video { media::choose(client, &item.url, self.video).await? } else { media::Choice { url: item.url.clone(), watermarked: false } };
+        if choice.watermarked && self.video == VideoVersion::Clean {
+            self.lock().summary.watermarked.push(name.to_owned());
+        }
+        if let Some(source) = &other_version {
+            // The server has nothing but the version already saved.
+            if media::version_of(source) == media::version_of(&choice.url) {
+                self.lock().summary.skipped += 1;
+                return Ok((name.to_owned(), Outcome::Skipped, 0));
+            }
+        }
+        let item = &DownloadItem { url: choice.url, ..item.clone() };
 
         let response = client.get(&item.url).await?;
         let partial = self.directory.join(format!("{name}.part"));
@@ -261,12 +299,14 @@ impl DownloadManager {
         file.flush().await?;
         drop(file);
         let digest = hex(&hasher.finalize());
-        let (saved_as, outcome) = self.place(name, &partial, &digest, size, item)?;
+        let (saved_as, outcome) = self.place(name, &partial, &digest, size, item, other_version.is_some())?;
         Ok((saved_as, outcome, size))
     }
 
-    /// Moves a finished download into place and records it, without ever replacing a different file.
-    fn place(&self, name: &str, partial: &Path, digest: &str, size: u64, item: &DownloadItem) -> Result<(String, Outcome)> {
+    /// Moves a finished download into place and records it, without ever replacing a file that was
+    /// changed. With `replace`, it takes the place of the file saved earlier, provided that file is
+    /// still exactly what was downloaded then.
+    fn place(&self, name: &str, partial: &Path, digest: &str, size: u64, item: &DownloadItem, replace: bool) -> Result<(String, Outcome)> {
         let mut state = self.lock();
         let mut name = name.to_owned();
         let mut path = self.directory.join(&name);
@@ -278,6 +318,13 @@ impl DownloadManager {
                 state.summary.already_present += 1;
                 self.record(&mut state, &name, digest, size, item, &path);
                 return Ok((name, Outcome::AlreadyPresent));
+            }
+            if replace && state.entries.get(&name).is_some_and(|entry| entry.sha256 == existing) {
+                fs::rename(partial, &path)?;
+                state.summary.replaced += 1;
+                state.summary.bytes += size;
+                self.record(&mut state, &name, digest, size, item, &path);
+                return Ok((name, Outcome::Replaced));
             }
             if state.entries.get(&name).is_some_and(|entry| entry.sha256 != existing) {
                 state.summary.altered_on_disk.push(name.clone());
@@ -305,7 +352,7 @@ impl DownloadManager {
         let partial = self.directory.join(format!("{name}.part"));
         fs::write(&partial, content)?;
         let digest = hex(&Sha256::digest(content));
-        let (saved_as, _) = self.place(name, &partial, &digest, content.len() as u64, item)?;
+        let (saved_as, _) = self.place(name, &partial, &digest, content.len() as u64, item, false)?;
         Ok(saved_as)
     }
 

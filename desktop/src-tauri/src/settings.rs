@@ -4,6 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
+use snapintel_core::media::VideoVersion;
 use tauri::{AppHandle, Manager};
 
 pub const THEMES: [&str; 3] = ["system", "light", "dark"];
@@ -27,6 +28,8 @@ pub struct Settings {
     /// Give each account its own folder inside `download_dir`.
     pub folder_per_account: bool,
     pub concurrency: u8,
+    /// Which version of a video to download when Snapchat has two: without its watermark, or the largest.
+    pub video_version: VideoVersion,
     pub timeout_secs: u64,
     /// The language Snapchat writes page titles in, such as `en-US`. Empty: let Snapchat choose.
     pub locale: String,
@@ -41,6 +44,7 @@ impl Default for Settings {
             download_dir: None,
             folder_per_account: true,
             concurrency: 6,
+            video_version: VideoVersion::Clean,
             timeout_secs: 30,
             locale: "en-US".into(),
             theme: "system".into(),

@@ -8,7 +8,7 @@
 The installer is not code-signed, so SmartScreen doesn't recognise it. Choose **More info**, then **Run anyway**. You can confirm the file first by comparing its SHA-256 with `SHA256SUMS.txt` in the release.
 
 **The AppImage does nothing when I double-click it.**
-Make it executable: `chmod +x SnapIntel_1.0.0_amd64.AppImage`. On a system without FUSE, run it with `--appimage-extract-and-run`.
+Make it executable: `chmod +x SnapIntel_1.1.0_amd64.AppImage`. On a system without FUSE, run it with `--appimage-extract-and-run`.
 
 **The window is blank or flickers on Linux.**
 This is a known problem between WebKitGTK and some graphics drivers. Start the app with:
@@ -53,6 +53,9 @@ The media may have expired (stories do, after 24 hours), or your system lacks a 
 Snapchat hasn't transcribed it. The **Show captions** button only appears when it has.
 
 ## Downloading
+
+**Downloaded videos are small (480 × 852).**
+That is the largest version Snapchat publishes without its watermark. A 540 × 960 version with the watermark exists for Spotlight and some highlights; choose **Largest** under **Videos** in Settings to save that one. See [which version is saved](downloads.md#which-version-of-a-video-is-saved).
 
 **"Already saved: nothing new to download".**
 Every file you asked for is already in the folder and matches its record. That is the expected result of repeating a download.

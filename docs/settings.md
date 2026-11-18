@@ -13,6 +13,7 @@ Open Settings with the sliders button at the top right. Changes take effect at o
 | **Save to** | The folder downloads go into. **Change…** picks another. | `Downloads/SnapIntel` |
 | **A folder for each account** | Keeps every profile's files, and their record, in a subfolder named after the username. | On |
 | **Downloads at once** | How many files are fetched at the same time, from 1 to 16. Lower it on a slow or unreliable connection. | 6 |
+| **Videos** | Which version of a video to save when Snapchat has two: **No watermark** (480 × 852), or **Largest** (540 × 960, with Snapchat's logo and the username burned into the picture). See [which version is saved](downloads.md#which-version-of-a-video-is-saved). | No watermark |
 
 ## Snapchat
 

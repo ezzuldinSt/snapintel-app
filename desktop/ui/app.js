@@ -334,6 +334,11 @@ async function saveSettings(change) {
   return state.settings;
 }
 
+const VIDEO_VERSIONS = [
+  ['clean', 'No watermark · 480 × 852'],
+  ['sharpest', 'Largest · 540 × 960, watermarked'],
+];
+
 const LANGUAGES = [
   ['', 'Let Snapchat choose'],
   ['en-US', 'English'],
@@ -407,6 +412,7 @@ function openSettings(focusCheck = false) {
     h('div', { class: 'setting' }, h('div', { class: 'label' }, h('b', { text: 'Save to' }), folder), reset, change),
     settingRow('A folder for each account', 'Keeps every profile\'s files and their record together.', toggle(settings.folder_per_account, (on) => saveSettings({ folder_per_account: on }), 'A folder for each account')),
     settingRow('Downloads at once', 'How many files are fetched at the same time (1 to 16).', number(settings.concurrency, 1, 16, 'concurrency', 'Downloads at once')),
+    settingRow('Videos', 'Snapchat keeps two versions of most videos. The larger one has its logo and the username burned into the picture.', choice(VIDEO_VERSIONS, settings.video_version, (value) => saveSettings({ video_version: value }), 'Videos')),
     h('div', { class: 'group-title', text: 'Snapchat' }),
     settingRow('Page language', 'The language Snapchat writes page titles and descriptions in.', choice(LANGUAGES, settings.locale, (value) => saveSettings({ locale: value }), 'Page language')),
     settingRow('Give up after', 'Seconds to wait for Snapchat before reporting a problem (5 to 120).', number(settings.timeout_secs, 5, 120, 'timeout_secs', 'Seconds to wait')),
@@ -1352,12 +1358,13 @@ async function startDownload(files) {
     job.total = job.summary.total;
     job.done = job.summary.total;
     const s = job.summary;
-    const saved = s.downloaded;
+    const saved = s.downloaded + s.replaced;
     const text = s.cancelled ? `Stopped. ${plural(saved, 'file')} saved.` : s.failed ? `${plural(saved, 'file')} saved, ${s.failed} failed.` : saved ? `${plural(saved, 'file')} saved.` : 'Already saved: nothing new to download.';
     const last = job.events.find((event) => event.outcome !== 'failed' && event.outcome !== 'cancelled');
     const separator = s.directory.includes('\\') ? '\\' : '/';
     const target = s.total === 1 && last ? `${s.directory}${separator}${last.file}` : s.directory;
-    if (quiet || panel?.kind !== 'downloads') toast(text, { kind: s.failed ? 'error' : 'success', action: { label: 'Show', run: () => showInFolder(target) } });
+    const marked = s.watermarked.length ? ` ${s.watermarked.length === 1 ? 'One video exists' : `${s.watermarked.length} videos exist`} only with Snapchat's watermark.` : '';
+    if (quiet || panel?.kind !== 'downloads') toast(text + marked, { kind: s.failed ? 'error' : 'success', action: { label: 'Show', run: () => showInFolder(target) } });
   } catch (error) {
     job.error = message(error).message;
     toast(job.error, { kind: 'error' });
@@ -1393,12 +1400,15 @@ function downloadsBody() {
         { class: 'job' },
         h('div', { class: 'job-head' }, job.running ? h('span', { class: 'spinner' }) : icon(job.error || s?.failed ? 'alert' : 'check'), h('b', { text: head }), job.running ? button('Stop', { kind: 'sm', onclick: () => invoke('cancel_download') }) : null),
         h('div', { class: 'progress' }, h('i', { vars: { '--p': job.total ? job.done / job.total : 0 } })),
-        h('div', { class: 'counts' }, h('span', { class: 'pill', text: `${job.done} of ${job.total}` }), s ? [pill(s.downloaded, 'saved', 'ok'), pill(s.skipped + s.already_present, 'already saved'), pill(s.saved_beside, 'kept beside a changed file', 'warn'), pill(s.failed, 'failed', 'bad'), s.bytes ? h('span', { class: 'pill', text: size(s.bytes) }) : null] : null),
+        h('div', { class: 'counts' }, h('span', { class: 'pill', text: `${job.done} of ${job.total}` }), s ? [pill(s.downloaded, 'saved', 'ok'), pill(s.skipped + s.already_present, 'already saved'), pill(s.replaced, s.replaced === 1 ? 'replaced by the other version' : 'replaced by their other version', 'ok'), pill(s.saved_beside, 'kept beside a changed file', 'warn'), pill(s.failed, 'failed', 'bad'), s.bytes ? h('span', { class: 'pill', text: size(s.bytes) }) : null] : null),
         job.error ? h('div', { class: 'verify-result bad selectable', text: job.error }) : null,
         s?.altered_on_disk.length ? h('div', { class: 'verify-result bad selectable' }, h('b', { text: 'Changed since they were downloaded, so left untouched:' }), s.altered_on_disk.map((name) => h('code', { text: name }))) : null,
+        s?.watermarked.length
+          ? h('div', { class: 'verify-result neutral selectable' }, h('b', { text: `${plural(s.watermarked.length, 'video')} ${s.watermarked.length === 1 ? 'exists' : 'exist'} only with Snapchat's watermark, so ${s.watermarked.length === 1 ? 'it was' : 'they were'} saved with it:` }), s.watermarked.slice(0, 5).map((name) => h('code', { text: name })), s.watermarked.length > 5 ? `and ${s.watermarked.length - 5} more` : null)
+          : null,
         s?.errors.length ? h('div', { class: 'verify-result bad selectable' }, s.errors.slice(0, 5).map((line) => h('code', { text: line }))) : null,
         job.events.length
-          ? h('div', { class: 'events' }, job.events.slice(0, 60).map((event) => h('div', { class: 'event' }, icon(event.outcome === 'failed' ? 'alert' : event.outcome === 'cancelled' ? 'x' : 'check', `sm ${event.outcome === 'failed' ? 'bad' : event.outcome === 'cancelled' ? '' : 'ok'}`), h('code', { text: event.file, title: event.file }), { downloaded: size(event.bytes), skipped: 'already saved', already_present: 'already there', saved_beside: 'saved beside', failed: 'failed', cancelled: 'stopped' }[event.outcome])))
+          ? h('div', { class: 'events' }, job.events.slice(0, 60).map((event) => h('div', { class: 'event' }, icon(event.outcome === 'failed' ? 'alert' : event.outcome === 'cancelled' ? 'x' : 'check', `sm ${event.outcome === 'failed' ? 'bad' : event.outcome === 'cancelled' ? '' : 'ok'}`), h('code', { text: event.file, title: event.file }), { downloaded: size(event.bytes), skipped: 'already saved', already_present: 'already there', saved_beside: 'saved beside', replaced: 'replaced', failed: 'failed', cancelled: 'stopped' }[event.outcome])))
           : null,
       ),
     );
