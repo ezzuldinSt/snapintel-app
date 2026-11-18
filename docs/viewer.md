@@ -29,7 +29,7 @@ Snapchat's page carries a lot about each Spotlight video. SnapIntel shows all of
 | Section | What it is |
 |---|---|
 | **Figures** | Views, comments, shares, boosts and recommends. Hover a figure for the exact number. Snapchat hides some of these on some videos. |
-| **Posted, Length, Size** | Upload date and time in your time zone, duration, and the video's dimensions. |
+| **Posted, Length, Size** | Upload date and time in your time zone, duration, and the dimensions of the video being played. Which version plays is set under **Videos** in [Settings](settings.md). |
 | **Language** | The language Snapchat detects in the video. |
 | **Category** | The categories Snapchat files the video under. |
 | **Sound** | The title and artist of the sound used. |

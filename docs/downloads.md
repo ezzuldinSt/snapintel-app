@@ -51,9 +51,9 @@ Snapchat keeps two versions of most videos:
 | **No watermark** | 480 × 852 | As it was posted. |
 | **Largest** | 540 × 960, at a higher bitrate | With Snapchat's logo and the profile's username burned into the top left corner. |
 
-SnapIntel saves the version **without the watermark**, for every kind of video. Snapchat's own page plays the watermarked one for Spotlight, so a Spotlight you download is slightly smaller than the one you watch in the viewer, and clean.
+SnapIntel plays and saves the version **without the watermark**, for every kind of video. Snapchat's own page plays the watermarked one for Spotlight, so a Spotlight in SnapIntel is slightly smaller than on snapchat.com, and clean.
 
-To save the larger version instead, choose **Largest** under **Videos** in [Settings](settings.md). Either way:
+To play and save the larger version instead, choose **Largest** under **Videos** in [Settings](settings.md). Either way:
 
 - A few videos exist in one version only. They are saved as they are, and if that means a watermark you asked not to have, the Downloads panel names them.
 - When you download again after changing the setting, files saved as the other version are **replaced**, provided they are still exactly what was downloaded. A file you changed is left alone, as always.

@@ -2,6 +2,18 @@
 
 All notable changes to SnapIntel. Versions follow [semantic versioning](https://semver.org).
 
+## 1.1.1 (2026-11-19)
+
+### Fixed
+
+- **Some videos were still saved with Snapchat's watermark** although "No watermark" was chosen. Snapchat serves some Spotlights from a second media server (`bolt-gcdn.sc-cdn.net`), whose addresses 1.1.0 did not recognise and whose replies it did not accept as videos, so those were downloaded exactly as the page links them. Both are handled now.
+- Copies that 1.1.0 saved with the watermark are replaced by the clean version the next time you download the profile.
+
+### Changed
+
+- **The viewer plays the version you chose** under Settings → Downloads → Videos, so what you watch is what you save. Until now it always played the page's link, which for Spotlight is the watermarked one.
+- The viewer's **Size** is the size of the video being played.
+
 ## 1.1.0 (2026-11-18)
 
 ### Downloads

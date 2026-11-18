@@ -398,6 +398,9 @@ async fn videos_are_saved_without_the_watermark() {
         ("/d/highlight1.1322.IRZXSOY".to_owned(), (200, b"highlight, clean".to_vec())),
         ("/d/highlight1.27.IRZXSOY".to_owned(), (200, b"highlight, larger, with watermark".to_vec())),
         ("/d/photo0001.400.IRZXSOY".to_owned(), (200, b"photo".to_vec())),
+        // Snapchat serves some Spotlights from another server, in a folder with another name.
+        ("/y/spotlight3.27.IRZXSOY".to_owned(), (200, b"spotlight three, with watermark".to_vec())),
+        ("/y/spotlight3.1034.IRZXSOY".to_owned(), (200, b"spotlight three, clean".to_vec())),
     ]))
     .await;
     let client = client(&server);
@@ -430,6 +433,32 @@ async fn videos_are_saved_without_the_watermark() {
     assert_eq!(requests.iter().filter(|path| path.contains("highlight1")).count(), 1);
     assert_eq!(requests.iter().filter(|path| path.contains("photo0001")).count(), 1);
     assert!(!requests.iter().any(|path| path.ends_with("/d/spotlight1.27.IRZXSOY")), "the watermarked version was fetched: {requests:?}");
+
+    // A video in another folder of the server is handled the same way.
+    let elsewhere = DownloadItem {
+        url: format!("{}/y/spotlight3.27.IRZXSOY?mo=abc&uc=46", server.base),
+        ext: "mp4".into(),
+        category: "spotlight".into(),
+        uploaded_at: None,
+    };
+    let other = tempfile::tempdir().unwrap();
+    let summary = DownloadManager::open(other.path(), "tester").unwrap().run(&client, vec![elsewhere.clone()], 1, &never, |_| {}).await.unwrap();
+    assert_eq!((summary.downloaded, summary.watermarked.len()), (1, 0));
+    assert_eq!(fs::read(other.path().join("spotlight_spotlight3.mp4")).unwrap(), b"spotlight three, clean");
+    assert!(source(other.path(), "spotlight_spotlight3.mp4").ends_with("/y/spotlight3.1034.IRZXSOY"));
+    // A copy saved with the watermark by the version that missed such addresses is replaced.
+    let old = tempfile::tempdir().unwrap();
+    let summary = DownloadManager::open(old.path(), "tester")
+        .unwrap()
+        .prefer(VideoVersion::Sharpest)
+        .run(&client, vec![elsewhere.clone()], 1, &never, |_| {})
+        .await
+        .unwrap();
+    assert_eq!(summary.downloaded, 1);
+    assert_eq!(fs::read(old.path().join("spotlight_spotlight3.mp4")).unwrap(), b"spotlight three, with watermark");
+    let summary = DownloadManager::open(old.path(), "tester").unwrap().run(&client, vec![elsewhere], 1, &never, |_| {}).await.unwrap();
+    assert_eq!(summary.replaced, 1);
+    assert_eq!(fs::read(old.path().join("spotlight_spotlight3.mp4")).unwrap(), b"spotlight three, clean");
 
     // A second run fetches nothing: every file is the version asked for, or the only one there is.
     let summary = DownloadManager::open(folder.path(), "tester").unwrap().run(&client, items.clone(), 2, &never, |_| {}).await.unwrap();

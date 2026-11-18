@@ -107,10 +107,10 @@ Get the installer for your system from the **[latest release](https://github.com
 
 | System | File | How |
 |---|---|---|
-| **Windows 10 / 11** | `SnapIntel_1.1.0_x64-setup.exe` | Run it. It installs for your user account only, with no administrator prompt. |
-| **Debian, Ubuntu, Mint** | `SnapIntel_1.1.0_amd64.deb` | `sudo apt install ./SnapIntel_1.1.0_amd64.deb` |
-| **Fedora, openSUSE** | `SnapIntel-1.1.0-1.x86_64.rpm` | `sudo dnf install ./SnapIntel-1.1.0-1.x86_64.rpm` |
-| **Any other Linux** | `SnapIntel_1.1.0_amd64.AppImage` | `chmod +x SnapIntel_1.1.0_amd64.AppImage`, then run it. |
+| **Windows 10 / 11** | `SnapIntel_1.1.1_x64-setup.exe` | Run it. It installs for your user account only, with no administrator prompt. |
+| **Debian, Ubuntu, Mint** | `SnapIntel_1.1.1_amd64.deb` | `sudo apt install ./SnapIntel_1.1.1_amd64.deb` |
+| **Fedora, openSUSE** | `SnapIntel-1.1.1-1.x86_64.rpm` | `sudo dnf install ./SnapIntel-1.1.1-1.x86_64.rpm` |
+| **Any other Linux** | `SnapIntel_1.1.1_amd64.AppImage` | `chmod +x SnapIntel_1.1.1_amd64.AppImage`, then run it. |
 
 The installers are not code-signed, so Windows SmartScreen shows a warning the first time: choose **More info**, then **Run anyway**. Each release lists SHA-256 checksums so you can confirm your download.
 

@@ -56,6 +56,15 @@ pub fn normalize_username(input: &str) -> Result<String> {
     }
 }
 
+/// Whether a reply with this content type can be a video. Snapchat's servers name videos `video/mp4`
+/// on one host and a general `application/octet-stream` on another, so only what is clearly something
+/// else (a picture, or an error page) is ruled out.
+fn may_be_video(content_type: Option<&str>) -> bool {
+    let Some(kind) = content_type else { return true };
+    let kind = kind.trim().to_ascii_lowercase();
+    !(kind.starts_with("image/") || kind.starts_with("text/") || kind.contains("xml") || kind.contains("json") || kind.contains("html"))
+}
+
 fn request_error(error: reqwest::Error) -> Error {
     if error.is_timeout() {
         Error::Timeout
@@ -116,7 +125,7 @@ impl Client {
             return Ok(None);
         }
         let header = |name: reqwest::header::HeaderName| response.headers().get(name).and_then(|value| value.to_str().ok()).map(str::to_owned);
-        if header(reqwest::header::CONTENT_TYPE).is_some_and(|kind| !kind.starts_with("video/")) {
+        if !may_be_video(header(reqwest::header::CONTENT_TYPE).as_deref()) {
             return Ok(None);
         }
         // "bytes 0-0/705881" when the server honours the range, otherwise the length of the whole reply.
@@ -171,6 +180,18 @@ mod tests {
         }
         for input in ["", "   ", "@", "two words", "name!", "../etc", "-dash", &"x".repeat(31)] {
             assert!(matches!(normalize_username(input), Err(Error::InvalidUsername(_))), "{input:?} should be refused");
+        }
+    }
+
+    #[test]
+    fn what_can_be_a_video() {
+        // One of Snapchat's servers calls its videos video/mp4, another a general file.
+        for kind in [Some("video/mp4"), Some("application/octet-stream"), Some("binary/octet-stream"), None] {
+            assert!(may_be_video(kind), "{kind:?}");
+        }
+        // A picture or an error page under the same name is not a video.
+        for kind in ["image/jpeg", "image/webp", "application/xml; charset=UTF-8", "text/html", "application/json", "text/plain"] {
+            assert!(!may_be_video(Some(kind)), "{kind}");
         }
     }
 

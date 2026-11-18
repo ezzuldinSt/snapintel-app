@@ -334,6 +334,21 @@ async function saveSettings(change) {
   return state.settings;
 }
 
+/**
+ * The addresses to try for a video, the wanted one first. Snapchat keeps two versions of most videos
+ * under one name: 1034 and 1322 without its watermark, and 27, larger, with it. When the page links
+ * the other one than the setting asks for, the wanted version is tried first; the page's own link
+ * is the last resort.
+ */
+function videoSources(url) {
+  const match = /^([^?#]*\/[A-Za-z0-9_-]{8,})\.(\d{1,5})((?:\.[A-Za-z0-9]+)?)(?:[?#].*)?$/.exec(url || '');
+  if (!match) return [url];
+  const [, stem, version, suffix] = match;
+  const clean = ['1034', '1322'];
+  const others = state.settings?.video_version === 'sharpest' ? (clean.includes(version) ? ['27'] : []) : version === '27' ? clean : [];
+  return [...others.map((other) => `${stem}.${other}${suffix}`), url];
+}
+
 const VIDEO_VERSIONS = [
   ['clean', 'No watermark · 480 × 852'],
   ['sharpest', 'Largest · 540 × 960, watermarked'],
@@ -412,7 +427,7 @@ function openSettings(focusCheck = false) {
     h('div', { class: 'setting' }, h('div', { class: 'label' }, h('b', { text: 'Save to' }), folder), reset, change),
     settingRow('A folder for each account', 'Keeps every profile\'s files and their record together.', toggle(settings.folder_per_account, (on) => saveSettings({ folder_per_account: on }), 'A folder for each account')),
     settingRow('Downloads at once', 'How many files are fetched at the same time (1 to 16).', number(settings.concurrency, 1, 16, 'concurrency', 'Downloads at once')),
-    settingRow('Videos', 'Snapchat keeps two versions of most videos. The larger one has its logo and the username burned into the picture.', choice(VIDEO_VERSIONS, settings.video_version, (value) => saveSettings({ video_version: value }), 'Videos')),
+    settingRow('Videos', 'Snapchat keeps two versions of most videos. The larger one has its logo and the username burned into the picture. Used for playing and for saving.', choice(VIDEO_VERSIONS, settings.video_version, (value) => saveSettings({ video_version: value }), 'Videos')),
     h('div', { class: 'group-title', text: 'Snapchat' }),
     settingRow('Page language', 'The language Snapchat writes page titles and descriptions in.', choice(LANGUAGES, settings.locale, (value) => saveSettings({ locale: value }), 'Page language')),
     settingRow('Give up after', 'Seconds to wait for Snapchat before reporting a problem (5 to 120).', number(settings.timeout_secs, 5, 120, 'timeout_secs', 'Seconds to wait')),
@@ -1200,8 +1215,15 @@ function renderViewer() {
     h('div', { class: 'fallback' }, icon('alert', 'xl'), h('p', { text: 'This can\'t be played here. It may have expired, or this computer may be missing a video codec.' }), safe(item.media) ? button('Open in the browser', { icon: 'external', onclick: () => openLink(item.media) }) : null);
   let media;
   if (item.type === 'video' && safe(item.media)) {
-    media = h('video', { class: 'media', src: item.media, poster: safe(item.thumb), controls: true, autoplay: true, playsinline: true, preload: 'auto' });
-    media.addEventListener('error', () => media.replaceWith(fallback()), { once: true });
+    const sources = videoSources(item.media);
+    let source = 0;
+    media = h('video', { class: 'media', src: sources[0], poster: safe(item.thumb), controls: true, autoplay: true, playsinline: true, preload: 'auto' });
+    media.addEventListener('error', () => {
+      // The wanted version doesn't exist for this video: fall back, at last to the page's own link.
+      source += 1;
+      if (source < sources.length) media.src = sources[source];
+      else media.replaceWith(fallback());
+    });
     if (context.sequence) media.addEventListener('ended', () => step(1));
   } else if (safe(item.media || item.thumb)) {
     media = h('img', { class: 'media', src: item.media || item.thumb, alt: item.title || '', referrerpolicy: 'no-referrer', draggable: 'false' });
@@ -1226,12 +1248,16 @@ function renderViewer() {
     const figure = (value, label, iconName) => (value != null ? h('div', { title: fullNumber.format(value) }, h('b', { text: compact(value) }), h('span', null, icon(iconName, 'sm'), label)) : null);
     const figures = [figure(s.views, 'Views', 'eye'), figure(s.comments, 'Comments', 'message'), figure(s.shares, 'Shares', 'share'), figure(s.boosts, 'Boosts', 'bolt'), figure(s.recommends, 'Recommends', 'heart')].filter(Boolean);
     if (figures.length) body.push(h('div', { class: 'kv' }, figures));
+    const sizeCell = h('span', { text: s.width && s.height ? `${s.width} × ${s.height}` : '' });
+    video?.addEventListener('loadedmetadata', () => {
+      if (video.videoWidth) sizeCell.textContent = `${video.videoWidth} × ${video.videoHeight}`;
+    });
     const chips = (title, names, iconName) => (names.length ? h('div', { class: 'block' }, h('h4', null, iconName ? icon(iconName, 'sm') : null, title), h('div', { class: 'chips selectable' }, names.map((name) => h('span', { class: 'chip', dir: 'auto', text: name })))) : null);
     body.push(
       details([
         ['Posted', moment(item.uploaded_at)],
         ['Length', length(s.duration_seconds)],
-        ['Size', s.width && s.height ? `${s.width} × ${s.height}` : null],
+        ['Size', s.width && s.height ? sizeCell : null],
         ['Language', s.language ? languageName(s.language) : null],
         ['Category', s.categories.join(', ')],
         ['Sound', s.sound ? [s.sound.title, s.sound.artist].filter(Boolean).join(' · ') : null],

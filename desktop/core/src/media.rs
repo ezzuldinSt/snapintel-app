@@ -1,17 +1,21 @@
 //! Which of Snapchat's versions of a video to download.
 //!
-//! Snapchat's media server keeps several versions of an item under one ID, told apart by a number in
-//! the address: `https://cf-st.sc-cdn.net/d/<id>.<version>.<suffix>`. A profile's page links one of
-//! them. For videos two kinds exist:
+//! Snapchat's media servers keep several versions of an item under one ID, told apart by a number in
+//! the address: `https://cf-st.sc-cdn.net/d/<id>.<version>.<suffix>`, or the same name in another
+//! folder of another server, such as `https://bolt-gcdn.sc-cdn.net/y/<id>.<version>.<suffix>`.
+//! A profile's page links one of them. For videos two kinds matter:
 //!
 //! - versions 1034 and 1322: 480 x 852, nothing added to the picture. The page links these for
 //!   stories and highlights.
 //! - version 27: 540 x 960 at a higher bitrate, with Snapchat's logo and the username burned into the
 //!   picture. The page links this one for Spotlight, and the server has it for some highlights too.
 //!
-//! Nothing larger is published: asking the server for every version number from 0 to 3000 of sample
-//! stories, highlights and Spotlights (November 2026) found only these and small previews. Photos
-//! need no choosing, because the page already links their largest version.
+//! A video the page links as any other version (1325, a clean 720 x 1280 one, is the page's link for
+//! some highlights) has neither of these beside it, and is downloaded as linked.
+//!
+//! Nothing else is worth asking for: every version number from 0 to 3000 of sample stories,
+//! highlights and Spotlights (November 2026) gave only these, small previews, and HEVC copies of the
+//! same sizes. Photos need no choosing, because the page already links their largest version.
 
 use serde::{Deserialize, Serialize};
 
@@ -49,20 +53,23 @@ impl Address<'_> {
     }
 }
 
+/// Takes apart an address whose last part is `<id>.<version>` or `<id>.<version>.<suffix>`, whatever
+/// server and folder it is in. Anything else (a lens preview's `<id>.mp4`, a picture's size and
+/// format) is not such an address.
 fn parse(url: &str) -> Option<Address<'_>> {
     let path_end = url.find(['?', '#']).unwrap_or(url.len());
     let path = &url[..path_end];
-    let name_start = path.rfind("/d/")? + 3;
+    let name_start = path.rfind('/')? + 1;
     let name = &path[name_start..];
-    if name.contains('/') {
-        return None;
-    }
     let (id, rest) = name.split_once('.')?;
     let (digits, after) = match rest.find('.') {
         Some(dot) => rest.split_at(dot),
         None => (rest, ""),
     };
-    if id.is_empty() || digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) {
+    let is_id = id.len() >= 8 && id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-');
+    let is_version = !digits.is_empty() && digits.len() <= 5 && digits.bytes().all(|b| b.is_ascii_digit());
+    let is_suffix = after.is_empty() || after[1..].bytes().all(|b| b.is_ascii_alphanumeric());
+    if !(is_id && is_version && is_suffix) {
         return None;
     }
     Some(Address { before: &path[..name_start + id.len()], version: digits.parse().ok()?, after })
@@ -140,7 +147,13 @@ mod tests {
             parse("https://cf-st.sc-cdn.net/d/ZXSSacNIpSYqxAm21SSGc.400?mo=x").unwrap().with(999),
             "https://cf-st.sc-cdn.net/d/ZXSSacNIpSYqxAm21SSGc.999"
         );
-        assert_eq!(version_of("https://cf-st.sc-cdn.net/d/abc.1322.IRZXSOY"), Some(1322));
+        assert_eq!(version_of("https://cf-st.sc-cdn.net/d/eHfqR7qRY9kuVjZbupqN4.1322.IRZXSOY"), Some(1322));
+        // The same names are served from other servers and folders.
+        let elsewhere = parse("https://bolt-gcdn.sc-cdn.net/y/547n2t2QrR5K1PrXNtIbO.27.IRZXSOY?mo=x&uc=46").unwrap();
+        assert_eq!((elsewhere.version, elsewhere.with(1034).as_str()), (27, "https://bolt-gcdn.sc-cdn.net/y/547n2t2QrR5K1PrXNtIbO.1034.IRZXSOY"));
+        assert!(is_watermarked("https://bolt-gcdn.sc-cdn.net/y/547n2t2QrR5K1PrXNtIbO.27.IRZXSOY"));
+        assert!(!satisfies("https://bolt-gcdn.sc-cdn.net/y/547n2t2QrR5K1PrXNtIbO.27.IRZXSOY?mo=x", VideoVersion::Clean));
+        assert_eq!(version_of("https://bolt-gcdn.sc-cdn.net/br/OSCBB98vSBeTp88PbI4us.1034.IRZXSOY"), Some(1034));
         // Lens previews and anything else that isn't one of these addresses is left alone.
         for other in [
             "https://community-lens.storage.googleapis.com/preview-media/final/0d5ab4c2.mp4",
